@@ -1,8 +1,8 @@
 # Pigeon Control
 
-*Simulating thousands of pigeons fight over bread in a plaza.*
+*Simulating thousands of pigeons fighting over bread in a plaza.*
 
-![The official portrait](docs/pigeon.png)
+<p align="center"><img src="docs/pigeon.png" alt="The official portrait" width="360"></p>
 
 ![Julia](https://img.shields.io/badge/Julia-1.12-9558B2?logo=julia&logoColor=white) ![Godot](https://img.shields.io/badge/Godot-4.7-478CBF?logo=godot&logoColor=white)
 
@@ -29,6 +29,14 @@ That determinism is what makes the behavior tunable instead of guessable.
 - A custom binary UDP protocol that ships snapshots in one packet when small and fragments them past 8000 bytes.
 - A renderer with no authority. Godot poses meshes; it never decides a pigeon's next move.
 - Live control while the sim runs: drop bread, spawn a human, clear the plaza.
+
+## It moves
+
+![The flock, recorded live from the renderer: bread lands about two seconds in and the scrum forms; a human walks in around the five second mark and the flock reorganizes](docs/flock.gif)
+
+Recorded straight off the renderer while the server ran.
+Bread lands in the plaza first and pigeons peel off the flock to fight over it.
+Then a human shows up and everyone nearby remembers they are prey.
 
 ## Architecture
 
