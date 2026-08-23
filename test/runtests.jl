@@ -2,6 +2,8 @@ using Test
 using PigeonControl
 using StableRNGs
 
+include("control_tests.jl")
+
 @testset "T1 stability / bounds" begin
     cfg = SimConfig(seed=UInt32(1), n_pigeons=200)
     w = make_world(cfg)

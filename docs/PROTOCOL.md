@@ -101,12 +101,14 @@ The 3 pad bytes at offset 5 are reserved and must be zero.
 
 ## Control commands
 
-Text UDP on port 5001, one command per packet:
+Text UDP on port `snapshot_port + 1` (default 5001), one command per packet:
 
-- `DROP_BREAD x y z amount`
-- `SPAWN_HUMAN x y z`
-- `CLEAR_HUMAN`
-- `KILL_THE_SUN` (no-op)
+- `DROP_BREAD x y z amount` — scatter `amount` (integer count, clamped to 1..200) bread crumbs in a 1.5 m disk centered at `(x, max(y,0.2), z)`. Each crumb is a `Food` with `amount = 50.0`. Pigeons swarm and eat them.
+- `SPAWN_HUMAN x y z` — set the world's single threat position to `(x, y, z)`. Pigeons within `THREAT_RADIUS` (12 m) flee (state FLEEING).
+- `CLEAR_HUMAN` — clear the threat (`nothing`).
+- `KILL_THE_SUN` — no-op (kept for protocol completeness).
+
+Commands are input events; determinism holds given the same seed, config, and ordered command sequence.
 
 ## Note on smoothness
 

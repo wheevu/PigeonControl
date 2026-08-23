@@ -47,6 +47,7 @@ mutable struct World
     tick::UInt32
     grid::SpatialGrid
     threat::Union{Nothing, Vec3}
+    next_food_id::UInt32
 end
 
 """
@@ -65,7 +66,39 @@ function make_world(cfg::SimConfig = SimConfig())
     end
 
     grid = SpatialGrid(cfg)
-    World(cfg, rng, pigeons, foods, UInt32(0), grid, nothing)
+    World(cfg, rng, pigeons, foods, UInt32(0), grid, nothing, UInt32(cfg.food_count + 1))
+end
+
+# ----- control-channel helpers (spawned food / threat) -----
+
+function add_bread!(w::World, x::Real, y::Real, z::Real, amount::Real)
+    n = clamp(Int(round(amount)), 1, 200)
+    rng = w.rng
+    for _ in 1:n
+        ang = rand(rng) * 2 * π
+        r = sqrt(rand(rng)) * 1.5f0
+        px = Float32(x + cos(ang) * r)
+        pz = Float32(z + sin(ang) * r)
+        py = Float32(max(y, 0.2f0))
+        id = w.next_food_id
+        w.next_food_id += UInt32(1)
+        push!(w.foods, Food(id, @SVector(Float32[px, py, pz]), 50.0f0))
+    end
+    return n
+end
+
+function spawn_human!(w::World, x::Real, y::Real, z::Real)
+    w.threat = @SVector(Float32[Float32(x), Float32(y), Float32(z)])
+    return nothing
+end
+
+function clear_human!(w::World)
+    w.threat = nothing
+    return nothing
+end
+
+function kill_the_sun!(w::World)
+    return nothing  # protocol no-op
 end
 
 # ----- force helpers -----

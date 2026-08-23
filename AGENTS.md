@@ -53,9 +53,11 @@ Julia owns all simulation state. Godot never decides pigeon behavior; it only re
   (or any listener) on the target port. With a listener present, `send` returns
   instantly and the server exits cleanly on `--duration` or Ctrl-C.
 - The control channel (`DROP_BREAD`, `SPAWN_HUMAN`, `CLEAR_HUMAN`,
-  `KILL_THE_SUN`) is specified in `docs/PROTOCOL.md` but is not yet wired into
-  `run_server.jl`; it is a deferred milestone. The snapshot transport and
-  fragmentation are fully implemented.
+  `KILL_THE_SUN`) is implemented on both sides: `run_server.jl` listens on
+  `snapshot_port + 1` (default 5001) and mutates the `World`; Godot's
+  `CommandSender.gd` sends commands on keys B/H/C/K (drop bread / spawn human /
+  clear human / kill the sun). The snapshot transport and fragmentation are
+  fully implemented.
 
 ## Note
 

@@ -23,6 +23,7 @@ include("behavior/feeding.jl")   # food_force
 include("behavior/fear.jl")      # fear_force
 include("behavior/decision.jl")  # update_state!
 include("protocol/snapshot.jl")  # MAGIC, PROTOCOL_VERSION, state consts, serialize/parse
+include("protocol/control.jl")    # apply_command! and control-channel helpers
 
 # ----- required exports -----
 export World, Pigeon, Food, Genome, SimConfig
@@ -32,5 +33,6 @@ export FLYING, WALKING, EATING, FLEEING, LANDING, TAKEOFF, FIGHTING, PERCHING
 export SpatialGrid, build!, neighbors
 export nearest_food, nearest_threat, query_neighbors
 export boids_force, food_force, fear_force, update_state!, boundary_steer
+export apply_command!, add_bread!, spawn_human!, clear_human!, kill_the_sun!
 
 end # module

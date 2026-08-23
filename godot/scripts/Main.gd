@@ -12,6 +12,7 @@ func _ready() -> void:
 	_build_props()
 	_build_swarm()
 	_build_receiver()
+	_build_commander()
 	print("PigeonControl ready — listening on :5000")
 
 func _build_lighting() -> void:
@@ -91,3 +92,10 @@ func _build_receiver() -> void:
 	receiver.set_script(load("res://scripts/SnapshotReceiver.gd"))
 	add_child(receiver)
 	receiver.setup(get_node("Swarm"), 5000)
+
+func _build_commander() -> void:
+	var cs: Node = Node.new()
+	cs.name = "Commander"
+	cs.set_script(load("res://scripts/CommandSender.gd"))
+	add_child(cs)
+	cs.setup(get_node("FreeCam"), 5001)

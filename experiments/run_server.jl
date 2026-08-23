@@ -61,6 +61,30 @@ function main()
 
     sock = UDPSocket()
 
+    ctrl = UDPSocket()
+    ctrl_ok = false
+    try
+        bind(ctrl, ip"127.0.0.1", port + 1)
+        ctrl_ok = true
+    catch e
+        println("WARN: control channel bind failed on $(port+1): $e")
+    end
+    if ctrl_ok
+        cmd_channel = Channel{String}(64)
+        @async begin
+            try
+                while true
+                    data = recv(ctrl)
+                    put!(cmd_channel, String(copy(data)))
+                end
+            catch
+                # socket closed at shutdown; task ends.
+            end
+        end
+        println("(Control channel listening on 127.0.0.1:$(port+1): DROP_BREAD / SPAWN_HUMAN / CLEAR_HUMAN / KILL_THE_SUN)")
+    end
+    flush(stdout)
+
     println("PigeonControl server: seed=$(args["seed"]) n=$(args["n"]) -> 127.0.0.1:$port, fps=$fps, duration=$duration")
     println("(Run a renderer/listener on this port; the sim pairs with Godot.)")
     flush(stdout)
@@ -72,6 +96,11 @@ function main()
 
     try
         while running
+            if ctrl_ok
+                while isready(cmd_channel)
+                    apply_command!(world, take!(cmd_channel))
+                end
+            end
             step!(world)
             send_bytes(sock, ip"127.0.0.1", port, serialize_snapshot(world), world.tick)
 
@@ -98,6 +127,7 @@ function main()
         end
     finally
         close(sock)
+        if ctrl_ok; close(ctrl); end
     end
 end
 
