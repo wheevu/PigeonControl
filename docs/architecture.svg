@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" role="img" font-family="-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif">
+  <title>Pigeon Control architecture</title>
+  <desc>Julia owns the simulation and ships binary snapshots over UDP 5000 to Godot, which renders them. Control commands travel back from Godot to Julia over UDP 5001.</desc>
+  <defs>
+    <style>
+      .canvas { fill: #fbfaf7; }
+      .title { fill: #20262d; font-size: 26px; font-weight: 700; }
+      .subtitle { fill: #5c5550; font-size: 14px; }
+      .group { fill: #93643a; font-size: 13px; font-weight: 700; letter-spacing: 2px; }
+      .node { fill: #ffffff; stroke: #20262d; stroke-width: 1.5; }
+      .num { fill: #93643a; font-weight: 700; font-size: 15px; }
+      .name { fill: #20262d; font-size: 14px; }
+      .flow { stroke: #93643a; stroke-width: 2; fill: none; }
+      .cap { fill: #5c5550; font-size: 12px; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#93643a"/>
+    </marker>
+  </defs>
+
+  <rect class="canvas" x="0" y="0" width="900" height="440"/>
+  <text class="title" x="40" y="38">Pigeon Control: who owns what</text>
+  <text class="subtitle" x="40" y="60">Julia simulates. Godot renders. They meet only on the wire.</text>
+
+  <text class="group" x="40" y="96">JULIA CORE</text>
+  <text class="group" x="620" y="96">GODOT 4.x</text>
+
+  <!-- Julia nodes -->
+  <rect class="node" x="40" y="104" width="240" height="56" rx="6"/>
+  <text x="60" y="138"><tspan class="num">01</tspan><tspan class="name">  World.step!()</tspan></text>
+
+  <rect class="node" x="40" y="180" width="240" height="56" rx="6"/>
+  <text x="60" y="214"><tspan class="num">02</tspan><tspan class="name">  serialize_snapshot()</tspan></text>
+
+  <rect class="node" x="40" y="256" width="240" height="56" rx="6"/>
+  <text x="60" y="290"><tspan class="num">03</tspan><tspan class="name">  apply_command!()</tspan></text>
+
+  <!-- Godot nodes -->
+  <rect class="node" x="620" y="104" width="240" height="56" rx="6"/>
+  <text x="640" y="138"><tspan class="num">04</tspan><tspan class="name">  SnapshotReceiver (5000)</tspan></text>
+
+  <rect class="node" x="620" y="180" width="240" height="56" rx="6"/>
+  <text x="640" y="214"><tspan class="num">05</tspan><tspan class="name">  SnapshotParser</tspan></text>
+
+  <rect class="node" x="620" y="256" width="240" height="56" rx="6"/>
+  <text x="640" y="290"><tspan class="num">06</tspan><tspan class="name">  Swarm (MultiMesh)</tspan></text>
+
+  <rect class="node" x="620" y="332" width="240" height="56" rx="6"/>
+  <text x="640" y="366"><tspan class="num">07</tspan><tspan class="name">  CommandSender (keys, 5001)</tspan></text>
+
+  <!-- flows -->
+  <path class="flow" marker-end="url(#arrow)" d="M280,208 L612,138"/>
+  <line class="flow" marker-end="url(#arrow)" x1="740" y1="160" x2="740" y2="178"/>
+  <line class="flow" marker-end="url(#arrow)" x1="740" y1="236" x2="740" y2="254"/>
+  <path class="flow" marker-end="url(#arrow)" d="M620,360 L288,290"/>
+
+  <text class="cap" x="430" y="170" text-anchor="middle">snapshots (UDP 5000)</text>
+  <text class="cap" x="430" y="344" text-anchor="middle">commands (UDP 5001)</text>
+</svg>
