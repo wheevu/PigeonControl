@@ -1,8 +1,6 @@
 # Pigeon Control
 
-A 3D pigeon swarm simulation: Julia owns the simulation state and streams snapshots over UDP; Godot renders whatever arrives.
-
-*Thousands of pigeons fight over bread in a plaza. Julia thinks; Godot watches.*
+*Simulating thousands of pigeons fight over bread in a plaza.*
 
 ![The official portrait](docs/pigeon.png)
 
