@@ -1,36 +1,34 @@
 # Pigeon Control
 
-Computational ornithological warfare. Julia runs the flock. Godot just watches, and occasionally drops bread.
+*Thousands of pigeons fight over bread in a plaza. Julia thinks; Godot watches.*
 
-![A low-poly pigeon, rendered from the sim's own mesh](docs/pigeon.png)
+![The official portrait](docs/pigeon.png)
 
 ![Julia](https://img.shields.io/badge/Julia-1.12-9558B2?logo=julia&logoColor=white) ![Godot](https://img.shields.io/badge/Godot-4.7-478CBF?logo=godot&logoColor=white)
 
-## About
+## What this is
 
-Pigeon Control started as a joke about dots that do math.
-The dots learned to flock, then to land, eat, flee, and fight over crumbs, and the joke grew wings.
-Now it is a small engine: thousands of pigeons in a 50 by 50 meter plaza, simulated in Julia and drawn by Godot.
+A 3D pigeon swarm simulation split across two processes.
+Julia owns all simulation state and steps thousands of birds through flocking, feeding, and fear behaviors.
+Godot receives binary snapshots over UDP and draws them.
+Neither side can do the other's job, so there is no shared mutable state and no argument about who moved a pigeon.
 
-I like the split because it removes the thing that makes simulations miserable.
-Julia owns the truth.
-Godot owns nothing worth arguing about.
-They meet on a wire, and neither side can quietly move a pigeon behind the other's back.
+This is the successor to [dots-sim](https://github.com/wheevu/dots-sim).
+The dots became pigeons, the arena became a 50 by 50 meter plaza, and the behaviors became actual simulation work: hunger drives pigeons toward food, threats scatter them, and every bird carries a genome that weights those urges differently.
 
-The default seed is `69420`.
-Run it and you get "The Great Bread Massacre" every time, same birds, same stampede.
-That reproducibility is not a party trick.
-It is the only reason the fear and feeding behavior are debuggable at all.
+The default seed `69420` reproduces "The Great Bread Massacre".
+Same seed, same config, same inputs, same stampede.
+That determinism is what makes the behavior tunable instead of guessable.
 
 ## Features
 
-- Thousands of boids at once, each with its own genome driving flocking weights and bravery.
-- Real behavior states: flying, walking, eating, fleeing, landing, takeoff, fighting, perching.
-- Bread matters. Drop it and the flock switches from drifting to a feeding scrum.
-- Humans matter more. Spawn one and pigeons inside 12 meters break ranks and run.
-- A custom binary UDP protocol that ships snapshots as one packet or fragments them when the flock is huge.
-- A renderer that only witnesses. Godot never decides a pigeon's next move.
-- Live control over the wire: drop bread, summon a human, clear the plaza, all while it runs.
+- Thousands of boids, each with a genome that scales cohesion, alignment, separation, greed, and cowardice individually.
+- Eight behavior states: flying, walking, eating, fleeing, landing, takeoff, fighting, perching.
+- Bread drops create real food competition; pigeons within eating radius drain a crumb until it is gone.
+- Humans are threats: any pigeon inside 12 meters flees, scaled by how close it is and how fearful its genome says it is.
+- A custom binary UDP protocol that ships snapshots in one packet when small and fragments them past 8000 bytes.
+- A renderer with no authority. Godot poses meshes; it never decides a pigeon's next move.
+- Live control while the sim runs: drop bread, spawn a human, clear the plaza.
 
 ## Architecture
 
@@ -38,10 +36,10 @@ It is the only reason the fear and feeding behavior are debuggable at all.
 
 Julia steps the world, packs it into bytes, and sends those bytes to Godot.
 Godot parses them and poses the `MultiMeshInstance3D`.
-Commands go the other way on a second port and feed straight into the next simulation step.
+Commands travel the other way on a second port and apply before the next step.
 
 The wire format is the contract, and it lives in three places that must stay in sync: `src/protocol/snapshot.jl`, `docs/PROTOCOL.md`, and `godot/scripts/SnapshotParser.gd`.
-The full layout and the fragmentation rules are in [docs/PROTOCOL.md](docs/PROTOCOL.md).
+The byte layout and fragmentation rules are in [docs/PROTOCOL.md](docs/PROTOCOL.md).
 The module map and data flow are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Quickstart
@@ -59,19 +57,19 @@ godot --path godot
 ```
 
 You can also open the project in the Godot editor and press Play.
-Point Godot at the same machine as the server and the birds appear.
 
 ## Control commands
 
 Commands are plain text over UDP, one per packet, on port `snapshot_port + 1` (5001 by default).
 
-- `DROP_BREAD x y z amount` scatters bread crumbs the pigeons eat.
-- `SPAWN_HUMAN x y z` drops a human into the plaza and the flock scatters.
-- `CLEAR_HUMAN` removes every human.
-- `KILL_THE_SUN` is a no-op, kept for the drama.
+| Command | Effect |
+| --- | --- |
+| `DROP_BREAD x y z amount` | Scatters up to 200 crumbs in a 1.5 m disk; pigeons eat them |
+| `SPAWN_HUMAN x y z` | Sets the threat position; nearby pigeons flee |
+| `CLEAR_HUMAN` | Removes the threat |
+| `KILL_THE_SUN` | Currently a no-op |
 
-In Godot, the keys do the typing for you.
-Press **B** to drop bread under the cursor, **H** to spawn a human, **C** to clear, and **K** for the sun.
+In Godot: **B** drops bread under the crosshair, **H** spawns a human, **C** clears it, **K** sends the no-op.
 
 ## Development
 
@@ -81,7 +79,7 @@ Install Julia dependencies once:
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
-Run the test suite:
+Run the test suite (T1-T6, determinism, serialization contract, behavior):
 
 ```bash
 julia --project=. test/runtests.jl
@@ -96,20 +94,18 @@ cd godot && godot --headless -s res://scripts/_fragtest.gd
 
 ## Documentation
 
-- [docs/PROTOCOL.md](docs/PROTOCOL.md) is the canonical wire specification.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) maps the modules and the data flow.
+- [docs/PROTOCOL.md](docs/PROTOCOL.md): the canonical wire specification.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): module map and data flow.
 
 ## Limitations
 
 The server pairs with a listener.
-On macOS, sending a UDP datagram to a closed port can block forever, so always run Godot, or any listener, on the snapshot port.
-With a listener present, sends return instantly and the server exits cleanly on a duration or Ctrl-C.
+On macOS, sending a UDP datagram to a closed port can block indefinitely, so run Godot, or any listener, on the snapshot port.
+With a listener present, sends return instantly and the server exits cleanly on duration or Ctrl-C.
 
-Performance is honest about its budget.
-A few thousand pigeons step at well under 60 frames per second today.
-Faster stepping is a later milestone, not a mystery: structure-of-arrays and threading are the obvious levers.
+Throughput drops fast with population: roughly 39 steps/s at n=100 and 5 steps/s at n=2000, against a 60 fps target.
+Structure-of-arrays storage and threading are the planned fixes.
 
 ## License
 
 No license file yet.
-Assume it is not open source until one is added.
