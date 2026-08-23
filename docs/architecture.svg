@@ -19,9 +19,7 @@
   </defs>
 
   <rect class="canvas" x="0" y="0" width="900" height="440"/>
-  <text class="title" x="40" y="38">Pigeon Control: who owns what</text>
-  <text class="subtitle" x="40" y="60">Julia simulates. Godot renders. They meet only on the wire.</text>
-
+  <text class="title" x="40" y="48">Ownership</text>
   <text class="group" x="40" y="96">JULIA CORE</text>
   <text class="group" x="620" y="96">GODOT 4.x</text>
 

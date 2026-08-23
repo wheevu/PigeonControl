@@ -1,10 +1,13 @@
 # Pigeon Control
+![Julia](https://img.shields.io/badge/Julia-1.12-9558B2?logo=julia&logoColor=white) ![Godot](https://img.shields.io/badge/Godot-4.7-478CBF?logo=godot&logoColor=white)
 
 *Simulating thousands of pigeons fighting over bread in a plaza.*
 
 <p align="center"><img src="docs/pigeon.png" alt="The official portrait" width="360"></p>
 
-![Julia](https://img.shields.io/badge/Julia-1.12-9558B2?logo=julia&logoColor=white) ![Godot](https://img.shields.io/badge/Godot-4.7-478CBF?logo=godot&logoColor=white)
+<p align="center"><img src="docs/flock.gif"></p>
+
+
 
 ## What this is
 
@@ -29,15 +32,6 @@ That determinism is what makes the behavior tunable instead of guessable.
 - A custom binary UDP protocol that ships snapshots in one packet when small and fragments them past 8000 bytes.
 - A renderer with no authority. Godot poses meshes; it never decides a pigeon's next move.
 - Live control while the sim runs: drop bread, spawn a human, clear the plaza.
-
-## It moves
-
-![The flock on a slow orbit camera, recorded live from the renderer: bread lands around 0:02 and the scrum forms, a human walks in around 0:06 and everyone flees, the plaza is cleared at 0:11, a second drop lands across the plaza at 0:13](docs/flock.gif)
-
-Recorded straight off the renderer while the server ran.
-Bread lands in the plaza first and pigeons peel off the flock to fight over it.
-Then a human shows up and everyone nearby remembers they are prey.
-Once the threat is cleared, the flock re-forms until someone drops more bread on the far side of the plaza.
 
 ## Architecture
 
