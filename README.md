@@ -32,11 +32,12 @@ That determinism is what makes the behavior tunable instead of guessable.
 
 ## It moves
 
-![The flock, recorded live from the renderer: bread lands about two seconds in and the scrum forms; a human walks in around the five second mark and the flock reorganizes](docs/flock.gif)
+![The flock on a slow orbit camera, recorded live from the renderer: bread lands around 0:02 and the scrum forms, a human walks in around 0:06 and everyone flees, the plaza is cleared at 0:11, a second drop lands across the plaza at 0:13](docs/flock.gif)
 
 Recorded straight off the renderer while the server ran.
 Bread lands in the plaza first and pigeons peel off the flock to fight over it.
 Then a human shows up and everyone nearby remembers they are prey.
+Once the threat is cleared, the flock re-forms until someone drops more bread on the far side of the plaza.
 
 ## Architecture
 

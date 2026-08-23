@@ -38,7 +38,9 @@ func _build_human_marker() -> void:
 	cone.material_override = mat
 	cone.position = Vector3(0, 1.0, 0)
 	human_marker.add_child(cone)
-	get_tree().root.add_child(human_marker)
+	# setup() runs during the parent's _ready, when the tree is busy; a deferred
+	# add is required or the marker silently never enters the scene.
+	get_tree().root.add_child.call_deferred(human_marker)
 
 func _build_hud() -> void:
 	if get_tree() == null or get_tree().root == null:
@@ -46,7 +48,7 @@ func _build_hud() -> void:
 	hud = Label.new()
 	hud.position = Vector2(12, 12)
 	hud.add_theme_color_override("font_color", Color(1, 1, 1))
-	get_tree().root.add_child(hud)
+	get_tree().root.add_child.call_deferred(hud)
 	_hud("controls: [B] drop bread  [H] spawn human  [C] clear human  [K] kill the sun")
 
 func _unhandled_input(event: InputEvent) -> void:
