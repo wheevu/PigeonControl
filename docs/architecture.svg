@@ -11,9 +11,9 @@
       .num { fill: #93643a; font-weight: 700; font-size: 15px; }
       .name { fill: #20262d; font-size: 14px; }
       .flow { stroke: #93643a; stroke-width: 2; fill: none; }
-      .cap { fill: #5c5550; font-size: 12px; }
+      .cap { fill: #5c5550; font-size: 12px; paint-order: stroke; stroke: #fbfaf7; stroke-width: 4px; stroke-linejoin: round; }
     </style>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#93643a"/>
     </marker>
   </defs>
@@ -48,12 +48,16 @@
   <rect class="node" x="620" y="332" width="240" height="56" rx="6"/>
   <text x="640" y="366"><tspan class="num">07</tspan><tspan class="name">  CommandSender (keys, 5001)</tspan></text>
 
-  <!-- flows -->
-  <path class="flow" marker-end="url(#arrow)" d="M280,208 L612,138"/>
+  <!-- snapshot flow: elbow through open canvas -->
+  <path class="flow" marker-end="url(#arrow)" d="M280,208 L450,208 L450,138 L612,138"/>
+
+  <!-- render pipeline inside Godot -->
   <line class="flow" marker-end="url(#arrow)" x1="740" y1="160" x2="740" y2="178"/>
   <line class="flow" marker-end="url(#arrow)" x1="740" y1="236" x2="740" y2="254"/>
-  <path class="flow" marker-end="url(#arrow)" d="M620,360 L288,290"/>
 
-  <text class="cap" x="430" y="170" text-anchor="middle">snapshots (UDP 5000)</text>
-  <text class="cap" x="430" y="344" text-anchor="middle">commands (UDP 5001)</text>
+  <!-- command flow: elbow back through open canvas -->
+  <path class="flow" marker-end="url(#arrow)" d="M620,360 L450,360 L450,290 L288,290"/>
+
+  <text class="cap" x="365" y="230" text-anchor="middle">snapshots (UDP 5000)</text>
+  <text class="cap" x="535" y="382" text-anchor="middle">commands (UDP 5001)</text>
 </svg>
