@@ -5,7 +5,7 @@
 
 <p align="center"><img src="docs/pigeon.png" alt="The official portrait" width="360"></p>
 
-<p align="center"><img src="docs/flock.gif"></p>
+<p align="center"><img src="docs/flock.gif" width=70%></p>
 
 
 
