@@ -88,7 +88,7 @@ func _build_ground() -> void:
 	var plane: PlaneMesh = PlaneMesh.new()
 	plane.size = Vector2(1000, 1000)
 	ground.mesh = plane
-	ground.rotation_degrees.x = -90   # lay flat on y=0
+	# PlaneMesh is already horizontal (XZ), facing +Y; no rotation needed.
 	var mat: StandardMaterial3D = StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.albedo_color = Color(0.84, 0.84, 0.82)

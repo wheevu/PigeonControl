@@ -143,4 +143,44 @@ func _run() -> bool:
 		print("fail: trailing-byte packet reported no error")
 		return false
 
+	# Regression: Main._build_ground() must build a horizontal ground plane.
+	# We build it on a detached node (never entering the tree) so _ready() and
+	# the UDP receiver are never triggered.
+	var MainScript = load("res://scripts/Main.gd")
+	if MainScript == null:
+		print("fail: could not load res://scripts/Main.gd")
+		return false
+	var ground_host := Node3D.new()
+	ground_host.set_script(MainScript)
+	ground_host._build_ground()
+	var ground_node = ground_host.get_node_or_null("Ground")
+	if ground_node == null:
+		print("fail: Main._build_ground() produced no 'Ground' child")
+		ground_host.free()
+		return false
+	if not (ground_node is MeshInstance3D):
+		print("fail: Ground child is not a MeshInstance3D (got %s)"
+				% ground_node.get_class())
+		ground_host.free()
+		return false
+	if not (ground_node.mesh is PlaneMesh):
+		var mesh_cls: String = "null" if ground_node.mesh == null else ground_node.mesh.get_class()
+		print("fail: Ground.mesh is not a PlaneMesh (got %s)" % mesh_cls)
+		ground_host.free()
+		return false
+	var ground_plane := ground_node.mesh as PlaneMesh
+	if ground_plane.orientation != PlaneMesh.FACE_Y:
+		print("fail: Ground PlaneMesh does not face +Y")
+		ground_host.free()
+		return false
+	# FACE_Y is horizontal in local space. Its transformed normal must remain
+	# aligned with world +Y so the orbit camera cannot cross a vertical ground.
+	var world_normal: Vector3 = ground_node.transform.basis * Vector3.UP
+	var align: float = world_normal.dot(Vector3(0, 1, 0))
+	if align < 0.999:
+		print("fail: Ground is not horizontal — local face normal maps to %s (dot with world +Y = %f, expected > 0.999)" % [world_normal, align])
+		ground_host.free()
+		return false
+	ground_host.free()
+
 	return true
