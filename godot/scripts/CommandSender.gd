@@ -46,10 +46,12 @@ func _build_hud() -> void:
 	if get_tree() == null or get_tree().root == null:
 		return
 	hud = Label.new()
-	hud.position = Vector2(12, 12)
+	hud.position = Vector2(14, 12)
 	hud.add_theme_color_override("font_color", Color(1, 1, 1))
+	hud.add_theme_font_override("font", load("res://assets/2d/Kenney_Pixel.ttf"))
+	hud.add_theme_font_size_override("font_size", 17)
 	get_tree().root.add_child.call_deferred(hud)
-	_hud("controls: [B] drop bread  [H] spawn human  [C] clear human  [K] kill the sun")
+	hud.text = "controls: [B] drop bread  [H] spawn human  [C] clear human  [K] kill the sun"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:

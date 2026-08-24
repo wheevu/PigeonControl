@@ -32,6 +32,7 @@ That determinism is what makes the behavior tunable instead of guessable.
 - A custom binary UDP protocol that ships snapshots in one packet when small and fragments them past 8000 bytes.
 - A renderer with no authority. Godot poses meshes; it never decides a pigeon's next move.
 - Live control while the sim runs: drop bread, spawn a human, clear the plaza.
+- A 2.5D park: billboarded Kenney pixel-art cards (statue, fountain, benches, trees, flowers, birdhouses), each grounded by a soft blob shadow, on a warm plaza.
 
 ## Architecture
 

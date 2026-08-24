@@ -2,6 +2,10 @@ extends Node3D
 
 # Builds the entire 3D world in code. Godot only WITNESSES the simulation;
 # Julia streams reality over UDP and we render it.
+#
+# 2.5D style: the environment is billboarded pixel-art cards (Kenney, CC0)
+# facing the camera on a fixed vertical axis, each grounded by a soft blob
+# shadow. The pigeons themselves stay 3D.
 
 const MAX_PIGEONS: int = 2000
 
@@ -17,32 +21,53 @@ func _ready() -> void:
 	_build_commander()
 	print("PigeonControl ready — listening on :5000")
 
+# ----- helpers -----
+
+# A billboarded pixel-art card whose feet sit at `base` (y is usually 0).
+func _sprite(path: String, base: Vector3, px: float) -> Sprite3D:
+	var t: Texture2D = load(path)
+	var s: Sprite3D = Sprite3D.new()
+	s.texture = t
+	s.pixel_size = px
+	s.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	s.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var h: float = float(t.get_height()) * px
+	s.position = Vector3(base.x, base.y + h * 0.5, base.z)
+	add_child(s)
+	return s
+
+# A soft contact shadow so billboards read as standing on the plaza.
+func _blob(base: Vector3, width_m: float) -> void:
+	var s: Sprite3D = Sprite3D.new()
+	s.texture = load("res://assets/2d/shadow.png")
+	s.pixel_size = width_m / 64.0
+	s.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	s.rotation_degrees.x = -90
+	s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	s.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	s.position = Vector3(base.x, base.y + 0.02, base.z)
+	add_child(s)
+
+# ----- static world -----
+
 func _build_lighting() -> void:
 	var light: DirectionalLight3D = DirectionalLight3D.new()
 	light.name = "Sun"
 	light.rotation_degrees = Vector3(-48, -32, 0)
 	light.light_color = Color(1.0, 0.93, 0.82)
 	light.light_energy = 1.25
-	light.shadow_enabled = true
+	light.shadow_enabled = false   # top-down blob decals carry the shadows
 	add_child(light)
 
 func _build_environment() -> void:
-	var sky_mat: ProceduralSkyMaterial = ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.35, 0.55, 0.78)
-	sky_mat.sky_horizon_color = Color(0.83, 0.85, 0.86)
-	sky_mat.ground_bottom_color = Color(0.45, 0.45, 0.43)
-	sky_mat.ground_horizon_color = Color(0.80, 0.81, 0.80)
-	sky_mat.sun_angle_max = 20.0
-	var sky: Sky = Sky.new()
-	sky.sky_material = sky_mat
 	var env: Environment = Environment.new()
-	env.background_mode = Environment.BG_SKY
-	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 1.0
-	env.fog_enabled = true
-	env.fog_light_color = Color(0.82, 0.85, 0.88)
-	env.fog_density = 0.006
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.84, 0.84, 0.82)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.80, 0.80, 0.79)
+	env.ambient_light_energy = 1.15
+	env.fog_enabled = false
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var world_env: WorldEnvironment = WorldEnvironment.new()
 	world_env.name = "WorldEnv"
@@ -61,79 +86,99 @@ func _build_ground() -> void:
 	var ground: MeshInstance3D = MeshInstance3D.new()
 	ground.name = "Ground"
 	var plane: PlaneMesh = PlaneMesh.new()
-	plane.size = Vector2(50, 50)
+	plane.size = Vector2(1000, 1000)
 	ground.mesh = plane
 	ground.rotation_degrees.x = -90   # lay flat on y=0
 	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.53, 0.52, 0.50)
-	mat.roughness = 0.95
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(0.84, 0.84, 0.82)
 	ground.material_override = mat
 	add_child(ground)
 
 func _build_props() -> void:
-	_add_box("statue", Vector3(2, 4, 2), Vector3(0, 2, 0), Color(0.72, 0.72, 0.75))
-	_add_box("bench1", Vector3(3, 0.5, 1), Vector3(-6, 0.25, -4), Color(0.42, 0.30, 0.20))
-	_add_box("bench2", Vector3(3, 0.5, 1), Vector3(6, 0.25, -4), Color(0.42, 0.30, 0.20))
-	_add_cylinder("fountain", 2.0, 1.0, Vector3(8, 0.5, 8), Color(0.62, 0.72, 0.82))
+	# Centerpiece angel statue.
+	_sprite("res://assets/2d/statue.png", Vector3(0, 0, -2.5), 0.018)
+	_blob(Vector3(0, 0, -2.5), 2.2)
+
+	# Two benches flanking the walkway.
+	_sprite("res://assets/2d/bench.png", Vector3(-6, 0, -4), 0.024)
+	_blob(Vector3(-6, 0, -4), 2.4)
+	_sprite("res://assets/2d/bench.png", Vector3(6, 0, -4), 0.024)
+	_blob(Vector3(6, 0, -4), 2.4)
+
+	# Fountain removed: its billboard filled the frame at the orbit's closest
+	# approach, so the plaza goes without one for now.
+
+	# Flower beds around the fountain.
+	for i in 15:
+		var ang: float = float(i) / 15.0 * TAU
+		var fx: float = 6.0 + cos(ang) * 3.2
+		var fz: float = 6.0 + sin(ang) * 3.2
+		var petal: String = ["flower_red", "flower_pink", "flower_yellow"][i % 3]
+		_sprite("res://assets/2d/%s.png" % petal, Vector3(fx, 0, fz), 0.05)
+		_blob(Vector3(fx, 0, fz), 0.9)
+
+	# Birdhouses on poles near the statue.
+	_pole(Vector3(-4, 0, 1), 1.9, 0.05)
+	_sprite("res://assets/2d/birdhouse.png", Vector3(-4, 1.9, 1), 0.03)
+	_pole(Vector3(4, 0, 1), 1.9, 0.05)
+	_sprite("res://assets/2d/birdhouse.png", Vector3(4, 1.9, 1), 0.03)
 
 func _build_trees() -> void:
-	for pos: Vector3 in [Vector3(-21, 0, -13), Vector3(19, 0, -18), Vector3(-16, 0, 17),
-			Vector3(22, 0, 12), Vector3(-3, 0, 22), Vector3(15, 0, -7)]:
-		_add_tree(pos)
+	# Ring of billboarded trees around the perimeter.
+	var trees: Array[Dictionary] = [
+		{"p": Vector3(-21, 0, -13), "t": "tree1", "px": 0.05},
+		{"p": Vector3(19, 0, -18),  "t": "tree5", "px": 0.046},
+		{"p": Vector3(-16, 0, 17),  "t": "tree2", "px": 0.052},
+		{"p": Vector3(22, 0, 12),   "t": "tree1", "px": 0.044},
+		{"p": Vector3(-3, 0, 22),   "t": "tree5", "px": 0.05},
+		{"p": Vector3(15, 0, -7),   "t": "tree2", "px": 0.048},
+	]
+	for tree: Dictionary in trees:
+		_sprite("res://assets/2d/%s.png" % tree["t"], tree["p"], tree["px"])
+		_blob(tree["p"], 5.5)
 
-func _add_tree(pos: Vector3) -> void:
-	var trunk: MeshInstance3D = MeshInstance3D.new()
-	var tm: CylinderMesh = CylinderMesh.new()
-	tm.top_radius = 0.14
-	tm.bottom_radius = 0.22
-	tm.height = 2.6
-	trunk.mesh = tm
-	trunk.position = pos + Vector3(0, 1.3, 0)
-	var wood: StandardMaterial3D = StandardMaterial3D.new()
-	wood.albedo_color = Color(0.36, 0.26, 0.18)
-	wood.roughness = 0.95
-	trunk.material_override = wood
-	add_child(trunk)
-	for offset: Vector3 in [Vector3(0, 3.1, 0), Vector3(0.7, 3.7, 0.3), Vector3(-0.6, 3.5, -0.4)]:
-		var canopy: MeshInstance3D = MeshInstance3D.new()
-		var cm: SphereMesh = SphereMesh.new()
-		cm.radius = 1.4
-		cm.height = 2.8
-		canopy.mesh = cm
-		canopy.position = pos + offset
-		var leaf: StandardMaterial3D = StandardMaterial3D.new()
-		leaf.albedo_color = Color(0.28, 0.40, 0.22)
-		leaf.roughness = 0.9
-		canopy.material_override = leaf
-		add_child(canopy)
+	# Low bushes hedging the plaza.
+	var bushes: Array[Vector3] = [Vector3(-2, 0, 6), Vector3(9, 0, -2), Vector3(-9, 0, 5), Vector3(2, 0, 12)]
+	var names: Array[String] = ["bush1", "bush2", "bush3"]
+	for i in bushes.size():
+		_sprite("res://assets/2d/%s.png" % names[i % names.size()], bushes[i], 0.05)
+		_blob(bushes[i], 1.6)
 
-func _add_box(name_str: String, size: Vector3, pos: Vector3, col: Color) -> void:
+func _pole(base: Vector3, h: float, r: float) -> void:
 	var mi: MeshInstance3D = MeshInstance3D.new()
-	mi.name = name_str
-	var box: BoxMesh = BoxMesh.new()
-	box.size = size
-	mi.mesh = box
-	mi.position = pos
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = col
-	mat.roughness = 0.8
-	mi.material_override = mat
-	add_child(mi)
-
-func _add_cylinder(name_str: String, radius: float, height: float, pos: Vector3, col: Color) -> void:
-	var mi: MeshInstance3D = MeshInstance3D.new()
-	mi.name = name_str
 	var cyl: CylinderMesh = CylinderMesh.new()
-	cyl.top_radius = radius
-	cyl.bottom_radius = radius
-	cyl.height = height
+	cyl.top_radius = r
+	cyl.bottom_radius = r
+	cyl.height = h
 	mi.mesh = cyl
-	mi.position = pos
+	mi.position = base + Vector3(0, h * 0.5, 0)
 	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = col
-	mat.roughness = 0.6
+	mat.albedo_color = Color(0.40, 0.32, 0.24)
+	mat.roughness = 0.9
 	mi.material_override = mat
 	add_child(mi)
+
+func _fountain(base: Vector3, px: float) -> void:
+	var frames: SpriteFrames = SpriteFrames.new()
+	frames.add_animation("water")
+	frames.set_animation_speed("water", 8.0)
+	frames.set_animation_loop("water", true)
+	for i in 4:
+		frames.add_frame("water", load("res://assets/2d/fountain_%d.png" % (i + 1)))
+	var a: AnimatedSprite3D = AnimatedSprite3D.new()
+	a.sprite_frames = frames
+	a.animation = &"water"
+	a.play()
+	a.pixel_size = px
+	a.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	a.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	a.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	a.position = Vector3(base.x, base.y + 96.0 * px * 0.5, base.z)
+	add_child(a)
+	_blob(base, maxf(1.4, 64.0 * px))
+
+# ----- the flock -----
 
 func _build_swarm() -> void:
 	var swarm: Node3D = Node3D.new()

@@ -15,6 +15,7 @@ var every: int = maxi(1, int(OS.get_environment("CAPTURE_EVERY")))
 var swarm: Node
 var orbit_cam: Camera3D
 var orbit_angle: float = -0.7
+var _dbg_angle: float = -99.0
 var count: int = 0
 var tick: int = 0
 
@@ -32,8 +33,14 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if orbit_cam != null:
 		orbit_angle += delta * 0.11
-		orbit_cam.position = Vector3(sin(orbit_angle) * 26.0, 10.5, cos(orbit_angle) * 26.0)
-		orbit_cam.look_at(Vector3(0, 1.2, 0))
+		orbit_cam.position = Vector3(sin(orbit_angle) * 14.0, 18.0, cos(orbit_angle) * 14.0)
+		orbit_cam.look_at(Vector3(0, 1.0, 0))
+		if abs(orbit_angle - _dbg_angle) > 0.35:
+			_dbg_angle = orbit_angle
+			for c in get_tree().root.find_children("*", "SpriteBase3D", true, false):
+				var d: float = orbit_cam.global_position.distance_to(c.global_position)
+				if d < 9.0:
+					print("NEAR %s pos=%s d=%.1f" % [c.name, c.global_position, d])
 	if count >= target:
 		return
 	if swarm == null or swarm.get("current_count") == null or swarm.current_count == 0:
