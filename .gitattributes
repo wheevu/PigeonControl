@@ -1,0 +1,6 @@
+# Julia is the core of this project: it owns all simulation state and steps the
+# flock. The godot/ directory is a separate, non-authoritative UDP renderer/client
+# that only draws snapshots it receives over the network. Exclude GDScript from
+# language statistics so the repository's primary language reflects the simulation,
+# not the view layer.
+*.gd linguist-detectable=false
