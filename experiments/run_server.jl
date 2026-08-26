@@ -3,36 +3,10 @@
 using PigeonControl
 using Sockets
 
-# ----- fragmentation transport -----
-# A single UDP datagram is capped (~9216 B on macOS, 65507 B IPv4 max). Large
-# snapshots (e.g. 2000 pigeons ~= 80 KB) cannot fit in one datagram, so we split
-# them into CHUNK_SIZE-byte fragments with a small envelope. Snapshots that
-# already fit are sent verbatim (single PICE packet) for backward compatibility.
-const FRAG_MAGIC = 0x46524147
-const CHUNK_SIZE = 8000
-
-# Send raw snapshot bytes over an unconnected UDP socket. Fragmentation is
-# best-effort: any send error (e.g. no listener yet) is swallowed so the
-# simulation never crashes. `fid` groups the fragments of one snapshot for the
-# receiver's reassembly.
-function send_bytes(sock, ip, port, bytes::Vector{UInt8}, fid::UInt32)
-    if length(bytes) <= CHUNK_SIZE
-        try; send(sock, ip, port, bytes); catch; end
-        return
-    end
-    n = ceil(Int, length(bytes) / CHUNK_SIZE)
-    for i in 0:n-1
-        seg = bytes[i*CHUNK_SIZE+1 : min(end, (i+1)*CHUNK_SIZE)]
-        io = IOBuffer()
-        write(io, UInt32(FRAG_MAGIC))
-        write(io, UInt32(fid))
-        write(io, UInt16(i))
-        write(io, UInt16(n))
-        write(io, UInt16(length(seg)))
-        write(io, seg)
-        try; send(sock, ip, port, take!(io)); catch; end
-    end
-end
+# Fragmentation transport now lives in src/protocol/transport.jl and is shared
+# with the observer (src/observation). It is re-exported by PigeonControl, so the
+# server's send path is byte-identical to before (FRAG_MAGIC / CHUNK_SIZE /
+# envelope unchanged). See transport.jl.
 
 # ----- argument parsing -----
 function parse_args()

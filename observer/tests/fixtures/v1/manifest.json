@@ -1,0 +1,180 @@
+{
+  "version": "v1",
+  "synthetic": true,
+  "note": "Synthetic smoke-only fixture. Not a research training result.",
+  "seeds": [
+    1000,
+    1007,
+    1014
+  ],
+  "scenarios": [
+    "baseline_idle",
+    "bread_drop_single",
+    "human_walkthrough",
+    "combat_brawl"
+  ],
+  "behavior_factors": [
+    "panic_mean",
+    "fear_mean",
+    "greed_mean",
+    "combat"
+  ],
+  "sequences": [
+    {
+      "sequence_id": "seq_1000_0",
+      "seed": 1000,
+      "scenario": "baseline_idle",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1000_0.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.13961631946036984,
+        "fear_mean": 0.4064099914003764,
+        "greed_mean": 0.5740891295876726,
+        "combat": 0
+      }
+    },
+    {
+      "sequence_id": "seq_1000_1",
+      "seed": 1000,
+      "scenario": "bread_drop_single",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1000_1.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.21602914722448235,
+        "fear_mean": 0.4621813332762078,
+        "greed_mean": 0.5027949878754654,
+        "combat": 0
+      }
+    },
+    {
+      "sequence_id": "seq_1000_2",
+      "seed": 1000,
+      "scenario": "human_walkthrough",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1000_2.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.14864785917968873,
+        "fear_mean": 0.27537975142331494,
+        "greed_mean": 0.5096480844113925,
+        "combat": 0
+      }
+    },
+    {
+      "sequence_id": "seq_1000_3",
+      "seed": 1000,
+      "scenario": "combat_brawl",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1000_3.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.1121033006214282,
+        "fear_mean": 0.40116570942538365,
+        "greed_mean": 0.4477792197561598,
+        "combat": 0
+      }
+    },
+    {
+      "sequence_id": "seq_1007_0",
+      "seed": 1007,
+      "scenario": "bread_drop_single",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1007_0.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.49080467170547454,
+        "fear_mean": 0.4978208085703122,
+        "greed_mean": 0.3733894401716645,
+        "combat": 1
+      }
+    },
+    {
+      "sequence_id": "seq_1007_1",
+      "seed": 1007,
+      "scenario": "human_walkthrough",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1007_1.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.3798889465064505,
+        "fear_mean": 0.4531505817901534,
+        "greed_mean": 0.858315848196844,
+        "combat": 1
+      }
+    },
+    {
+      "sequence_id": "seq_1007_2",
+      "seed": 1007,
+      "scenario": "combat_brawl",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1007_2.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.6264172116435907,
+        "fear_mean": 0.5070652946384892,
+        "greed_mean": 0.43681334216530693,
+        "combat": 1
+      }
+    },
+    {
+      "sequence_id": "seq_1007_3",
+      "seed": 1007,
+      "scenario": "baseline_idle",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1007_3.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.42981606774915077,
+        "fear_mean": 0.6499943379578502,
+        "greed_mean": 0.3638783277354789,
+        "combat": 0
+      }
+    },
+    {
+      "sequence_id": "seq_1014_0",
+      "seed": 1014,
+      "scenario": "human_walkthrough",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1014_0.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.5594582669188132,
+        "fear_mean": 0.2586972178416214,
+        "greed_mean": 0.25463846150207714,
+        "combat": 1
+      }
+    },
+    {
+      "sequence_id": "seq_1014_1",
+      "seed": 1014,
+      "scenario": "combat_brawl",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1014_1.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.5316299969800817,
+        "fear_mean": 0.36219987914685137,
+        "greed_mean": 0.37003685143768295,
+        "combat": 0
+      }
+    },
+    {
+      "sequence_id": "seq_1014_2",
+      "seed": 1014,
+      "scenario": "baseline_idle",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1014_2.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.5023036717856524,
+        "fear_mean": 0.43876237373598015,
+        "greed_mean": 0.4083047983445721,
+        "combat": 1
+      }
+    },
+    {
+      "sequence_id": "seq_1014_3",
+      "seed": 1014,
+      "scenario": "bread_drop_single",
+      "n_ticks": 20,
+      "parquet": "sequences/seq_1014_3.parquet",
+      "behavior_factors": {
+        "panic_mean": 0.49283827239766576,
+        "fear_mean": 0.6421328222958582,
+        "greed_mean": 0.5682864424366596,
+        "combat": 1
+      }
+    }
+  ]
+}

@@ -73,6 +73,14 @@ var slot_roll: Array = []      # Array[Array[float]] roll per slot
 var type_count: Array = []     # Array[int] current visible count per type
 var prev_count: Array = []     # Array[int] visible count last frame (stale-range clearing)
 
+# Observer capture mode: when enabled, rendering snaps directly to the latest
+# authoritative target transforms (no interpolation) and the visual FX clock is
+# derived from the authoritative tick * dt instead of wall-clock process delta.
+# Normal mode keeps the existing interpolation and wall-time FX behavior.
+var _observer_mode: bool = false
+var _observer_dt: float = 1.0 / 60.0
+var _observer_tick: int = 0
+
 func setup(max_n: int) -> void:
 	max_instances = max_n
 	current_count = 0
@@ -412,8 +420,13 @@ func update_from_parsed(parsed: Dictionary) -> void:
 func _process(delta: float) -> void:
 	if max_instances == 0:
 		return
-	target_alpha = minf(1.0, target_alpha + delta * LERP_RATE)
-	fx_time += delta
+	if _observer_mode:
+		# Visual FX clock follows the authoritative simulation tick, not wall time.
+		fx_time = float(_observer_tick) * _observer_dt
+		target_alpha = 1.0
+	else:
+		target_alpha = minf(1.0, target_alpha + delta * LERP_RATE)
+		fx_time += delta
 
 	# Shared FX MultiMeshes write into their own flat slot index.
 	var fx_i: int = 0
@@ -542,6 +555,27 @@ func _emote_transform(t: int, i: int, bird: Transform3D) -> Transform3D:
 	return Transform3D(Basis(), bird.origin + Vector3(0.0, 0.72 * s + bob, 0.0))
 
 # --- Read-only helpers for capture/debugging ---
+
+# Enables/disables observer capture mode. While enabled, the renderer draws
+# exactly the latest authoritative target transforms (no interpolation) and the
+# FX clock tracks the authoritative tick (see apply_observer_tick). Normal mode
+# is unaffected when this is false.
+func set_observer_capture(enabled: bool, dt: float) -> void:
+	_observer_mode = enabled
+	_observer_dt = dt
+	if enabled:
+		target_alpha = 1.0
+
+# Marks the authoritative tick currently being captured and snaps the render
+# baseline to the latest target transforms so the next composed frame shows the
+# exact simulation state for `tick` (one frame per tick, no interpolation).
+func apply_observer_tick(tick: int) -> void:
+	_observer_tick = tick
+	target_alpha = 1.0
+	for t in VARIANT_NAMES.size():
+		for i in type_count[t]:
+			prev_t[t][i] = target_t[t][i]
+			rend_t[t][i] = target_t[t][i]
 
 func get_variant_centroid(variant: int) -> Vector3:
 	if variant < 0 or variant >= VARIANT_NAMES.size():

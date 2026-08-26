@@ -344,3 +344,5 @@ end
     end
     @test snap(99) == snap(99)
 end
+
+include("observation_tests.jl")

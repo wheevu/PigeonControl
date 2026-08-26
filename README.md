@@ -130,6 +130,35 @@ With a listener present, sends return instantly and the server exits cleanly on 
 Throughput drops fast with population: roughly 39 steps/s at n=100 and 5 steps/s at n=2000, against a 60 fps target.
 Structure-of-arrays storage and threading are the planned fixes.
 
+## Observer and evaluation (experimental)
+
+The `observer/` package is an offline lane for building behavior datasets and scoring models.
+It reads datasets produced by the simulation and never participates in the live UDP runtime protocol.
+Julia owns generation (`experiments/generate_observer_dataset.jl`); Godot is used only for optional frame capture.
+The CLI exposes exactly seven commands: `generate`, `validate`, `train`, `evaluate`, `embed`, `retrieve`, `figures`.
+
+```bash
+# Build a dataset for all 12 scenarios and one seed, then validate it.
+pigeon-observer generate --scenario baseline_idle --seed 69420 --output data/obs
+pigeon-observer validate --dataset data/obs
+
+# Train, evaluate into a fresh run directory, embed, and retrieve neighbors.
+pigeon-observer train   --dataset data/obs --output models/obs
+pigeon-observer evaluate --checkpoint models/obs/ck.pt --dataset data/obs --output evidence/runs
+pigeon-observer embed   --checkpoint models/obs/ck.pt --dataset data/obs --output embeddings/
+pigeon-observer retrieve --index embeddings/embeddings.npz --query seq_1000_0 --top-k 5
+```
+
+Architecture boundary: the observer consumes snapshots and behavior labels after the fact.
+It does not feed state back into the simulation and does not alter the binary protocol.
+Retrieval and evaluation judge models on resulting behavior factors, not on shared seed or scenario.
+
+Current evidence limitations: the checked-in `observer/evidence/smoke_metrics.json` is synthetic and smoke-only.
+No research training result has been established by the fixture smoke evidence.
+We make no claim of individual-pigeon understanding or of a general world model.
+
+Full research plan and evidence policy: [docs/OBSERVER_EXPERIMENT.md](docs/OBSERVER_EXPERIMENT.md).
+
 ## License
 
 No license file yet.

@@ -1,2 +1,17 @@
 # Godot 4 editor cache (regenerated on open)
 godot/.godot/
+
+# ----- Observer package (offline evaluation lane) -----
+observer/build/
+observer/dist/
+observer/*.egg-info/
+observer/.pytest_cache/
+observer/.venv/
+observer/__pycache__/
+observer/.coverage
+# Generated evaluation / embedding run outputs (the checked-in evidence/ and
+# tests/fixtures/v1 are NOT ignored).
+observer/evidence/runs/
+**/__pycache__/
+*.pyc
+

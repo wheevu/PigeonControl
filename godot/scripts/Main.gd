@@ -9,14 +9,26 @@ extends Node3D
 
 const MAX_PIGEONS: int = 2000
 
+# Observer capture mode: when OBSERVER_MODE=1 the same scene runs with a fixed
+# deterministic overview camera, listens on OBSERVER_SNAPSHOT_PORT (default
+# 5100), and suppresses the interactive Commander. Authority never moves: Julia
+# still streams snapshots and Godot only renders them.
+var _observer_mode: bool = false
+
 func _ready() -> void:
+	_observer_mode = OS.get_environment("OBSERVER_MODE") == "1"
 	_build_ambience()
 	_build_camera()
 	_build_map()
 	_build_swarm()
 	_build_receiver()
-	_build_commander()
-	print("PigeonControl ready - listening on :5000")
+	if not _observer_mode:
+		_build_commander()
+	if _observer_mode:
+		print("PigeonControl observer mode - listening on :%d" % [
+			int(OS.get_environment("OBSERVER_SNAPSHOT_PORT")) if OS.get_environment("OBSERVER_SNAPSHOT_PORT") != "" else 5100])
+	else:
+		print("PigeonControl ready - listening on :5000")
 
 # ----- atmosphere -----
 
@@ -39,6 +51,16 @@ func _build_map() -> void:
 # ----- camera -----
 
 func _build_camera() -> void:
+	if _observer_mode:
+		# Fixed deterministic overview camera. No user input; clean frames.
+		var camera: Camera3D = Camera3D.new()
+		camera.name = "ObserverCam"
+		camera.position = Vector3(0, 33, 46)
+		camera.fov = 55.0
+		add_child(camera)
+		camera.look_at(Vector3(0, 1, 0))
+		camera.make_current()
+		return
 	var camera: Camera3D = Camera3D.new()
 	camera.name = "FreeCam"
 	camera.position = Vector3(0, 30, 34)
@@ -61,7 +83,19 @@ func _build_receiver() -> void:
 	receiver.name = "Receiver"
 	receiver.set_script(load("res://scripts/SnapshotReceiver.gd"))
 	add_child(receiver)
-	receiver.setup(get_node("Swarm"), 5000)
+	var port: int = 5000
+	if _observer_mode:
+		var raw: String = OS.get_environment("OBSERVER_SNAPSHOT_PORT").strip_edges()
+		if raw != "":
+			var p: int = int(raw)
+			if p >= 1 and p <= 65535:
+				port = p
+			else:
+				push_warning("Main: OBSERVER_SNAPSHOT_PORT out of range, using default 5100")
+				port = 5100
+		else:
+			port = 5100
+	receiver.setup(get_node("Swarm"), port)
 
 func _build_commander() -> void:
 	var cs: Node = Node.new()

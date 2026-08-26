@@ -1,0 +1,36 @@
+{
+  "synthetic": true,
+  "research_result": false,
+  "note": "Smoke-only metrics computed on the synthetic v1 fixture. No model was trained; these numbers are NOT a research result and must not be cited as evidence of pigeon understanding or a world model.",
+  "n_sequences": 12,
+  "classification_weak_baseline": {
+    "accuracy": 0.25,
+    "f1_macro": 0.19999999999999998,
+    "auroc": 0.15625,
+    "auroc_status": "ok"
+  },
+  "calibration_weak_baseline": {
+    "ece": 0.38107527417372866,
+    "brier": 0.3328175858605938
+  },
+  "retrieval_behavior": {
+    "recall_at_k": {
+      "1": null,
+      "2": null,
+      "3": null
+    },
+    "mrr": 0.875,
+    "top_k": 3,
+    "behavior_factors": [
+      "panic_mean",
+      "fear_mean",
+      "greed_mean"
+    ],
+    "behavior_threshold": 0.3,
+    "relevance": "behavior_factor_proximity"
+  },
+  "negative_findings": [
+    "Predictor using an unrelated feature (greed) does not separate high/low panic: AUROC is chance-level, not a finding of skill.",
+    "Fixture is synthetic and tiny; no individual-pigeon or world-model claim is made."
+  ]
+}

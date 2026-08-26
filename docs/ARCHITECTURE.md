@@ -84,3 +84,20 @@ Two layers, one contract. Julia is the brain that owns reality. Godot 4.x is the
 - Wing vertex-shader animation for flapping.
 - Four camera modes: FREECAM, FOLLOW, CINEMATIC, SECURITY.
 - GLMakie debug visualization of the sim state.
+
+## Offline observer lane
+
+The observer package lives under `observer/` and is an offline analysis lane.
+It consumes datasets produced by the simulation after the fact and never participates in the live UDP runtime protocol.
+The binary UDP protocol (port 5000 snapshots, port 5001 commands) is unchanged and remains the single contract between Julia and Godot.
+Godot is used by the observer only for optional frame capture through `observer_capture.tscn`, and only when the `generate --frames` flag is set.
+The observer never sends commands to the running simulation and never feeds state back into Julia.
+
+### Experiment-only acknowledgment
+
+During dataset generation with frame capture, Godot may emit an experiment-only acknowledgment that capture has completed for a run.
+This acknowledgment is scoped to the experiment pipeline and is distinct from the production runtime protocol.
+It is never required by the live renderer and never alters the wire format described in `docs/PROTOCOL.md`.
+The runtime protocol and the experiment-only acknowledgment are kept strictly separate so the observer cannot change simulation behavior.
+
+See `docs/OBSERVER_EXPERIMENT.md` for the research plan and evidence policy of the observer lane.

@@ -10,12 +10,20 @@ const SnapshotParser = preload("res://scripts/SnapshotParser.gd")
 const FRAG_MAGIC = 0x46524147
 const MAGIC_PICE = 0x50494345
 
+signal snapshot_applied(tick: int)
+
 var swarm: Node
 var port: int
 var peer: PacketPeerUDP
 var food_parent: Node3D
 var last_food_markers: Array = []   # pooled MeshInstance3D
 var _error_printed: bool = false
+
+# Most recently applied (fully fed) snapshot tick, plus the parser's error
+# string for that tick. Exposed so observer capture can validate a tick:
+# a nonempty error with ok=true must be treated as invalid for capture.
+var latest_applied_tick: int = -1
+var latest_applied_error: String = ""
 
 # Reassembly buffers keyed by frame id. Each value: {"count":int, "chunks":Array}
 var _reasm: Dictionary = {}
@@ -83,6 +91,9 @@ func _process(_delta: float) -> void:
 		if parsed.has("ok") and parsed["ok"]:
 			swarm.update_from_parsed(parsed)
 			_update_food_markers(parsed["foods"])
+			latest_applied_tick = parsed["tick"]
+			latest_applied_error = parsed["error"]
+			emit_signal("snapshot_applied", parsed["tick"])
 			_error_printed = false
 		elif parsed.has("ok") and not parsed["ok"]:
 			if not _error_printed:
