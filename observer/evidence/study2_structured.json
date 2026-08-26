@@ -1,0 +1,228 @@
+{
+  "study": "Pigeon Observer Study 2",
+  "dataset_version": "pigeon-observer-v1",
+  "results": [
+    {
+      "temporal": "gru",
+      "checkpoint": "/tmp/pigeon-study2/runs/gru_1/checkpoint.pt",
+      "parameters": 97757,
+      "n_test_windows": 28,
+      "seeds": [
+        44
+      ],
+      "panic": {
+        "accuracy": 0.75,
+        "f1_macro": 0.42857142857142855,
+        "auroc": 0.7346938775510204,
+        "auroc_status": "ok",
+        "ece": 0.21132513880729675,
+        "brier": 0.2304890570075493,
+        "pr_auc": 0.5954212454212454,
+        "class_counts": {
+          "negative": 21,
+          "positive": 7
+        }
+      },
+      "fear": {
+        "mae": 1.3428910748500908,
+        "rmse": 1.5674065966795536,
+        "r2": -2.6618576182064593
+      },
+      "greed": {
+        "mae": 0.965436692748751,
+        "rmse": 0.9665024542832964,
+        "r2": null
+      },
+      "negative_findings": [
+        "This study has no rendered frames, so it does not test vision or fusion.",
+        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+      ]
+    },
+    {
+      "temporal": "gru",
+      "checkpoint": "/tmp/pigeon-study2/runs/gru_2/checkpoint.pt",
+      "parameters": 97757,
+      "n_test_windows": 28,
+      "seeds": [
+        44
+      ],
+      "panic": {
+        "accuracy": 0.25,
+        "f1_macro": 0.2,
+        "auroc": 0.4081632653061224,
+        "auroc_status": "ok",
+        "ece": 0.30158673439707073,
+        "brier": 0.278718146003338,
+        "pr_auc": 0.22907726518407634,
+        "class_counts": {
+          "negative": 21,
+          "positive": 7
+        }
+      },
+      "fear": {
+        "mae": 1.0807488496814455,
+        "rmse": 1.3640130639133063,
+        "r2": -1.7731615691708447
+      },
+      "greed": {
+        "mae": 0.8107192526970591,
+        "rmse": 0.812253536749825,
+        "r2": null
+      },
+      "negative_findings": [
+        "This study has no rendered frames, so it does not test vision or fusion.",
+        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+      ]
+    },
+    {
+      "temporal": "gru",
+      "checkpoint": "/tmp/pigeon-study2/runs/gru_3/checkpoint.pt",
+      "parameters": 97757,
+      "n_test_windows": 28,
+      "seeds": [
+        44
+      ],
+      "panic": {
+        "accuracy": 0.75,
+        "f1_macro": 0.42857142857142855,
+        "auroc": 1.0,
+        "auroc_status": "ok",
+        "ece": 0.1706148215702602,
+        "brier": 0.20717490435899671,
+        "pr_auc": 0.9999999999999998,
+        "class_counts": {
+          "negative": 21,
+          "positive": 7
+        }
+      },
+      "fear": {
+        "mae": 0.9833346530795097,
+        "rmse": 1.2805929034317804,
+        "r2": -1.444332572029114
+      },
+      "greed": {
+        "mae": 0.7676590085029602,
+        "rmse": 0.7717322994091356,
+        "r2": null
+      },
+      "negative_findings": [
+        "This study has no rendered frames, so it does not test vision or fusion.",
+        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+      ]
+    },
+    {
+      "temporal": "transformer",
+      "checkpoint": "/tmp/pigeon-study2/runs/transformer_1/checkpoint.pt",
+      "parameters": 354461,
+      "n_test_windows": 28,
+      "seeds": [
+        44
+      ],
+      "panic": {
+        "accuracy": 0.75,
+        "f1_macro": 0.42857142857142855,
+        "auroc": 1.0,
+        "auroc_status": "ok",
+        "ece": 0.3008279236299651,
+        "brier": 0.19468030179170998,
+        "pr_auc": 0.9999999999999998,
+        "class_counts": {
+          "negative": 21,
+          "positive": 7
+        }
+      },
+      "fear": {
+        "mae": 0.6353584208658763,
+        "rmse": 1.0300180240478867,
+        "r2": -0.5813491235088908
+      },
+      "greed": {
+        "mae": 0.33713420799800325,
+        "rmse": 0.3373305191757605,
+        "r2": null
+      },
+      "negative_findings": [
+        "This study has no rendered frames, so it does not test vision or fusion.",
+        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+      ]
+    },
+    {
+      "temporal": "transformer",
+      "checkpoint": "/tmp/pigeon-study2/runs/transformer_2/checkpoint.pt",
+      "parameters": 354461,
+      "n_test_windows": 28,
+      "seeds": [
+        44
+      ],
+      "panic": {
+        "accuracy": 0.75,
+        "f1_macro": 0.42857142857142855,
+        "auroc": 0.9319727891156463,
+        "auroc_status": "ok",
+        "ece": 0.198294851396765,
+        "brier": 0.2202976659969293,
+        "pr_auc": 0.8500927643784786,
+        "class_counts": {
+          "negative": 21,
+          "positive": 7
+        }
+      },
+      "fear": {
+        "mae": 0.730552247592381,
+        "rmse": 1.0930769034747236,
+        "r2": -0.7809000622138136
+      },
+      "greed": {
+        "mae": 0.12809091806411743,
+        "rmse": 0.1307693641228105,
+        "r2": null
+      },
+      "negative_findings": [
+        "This study has no rendered frames, so it does not test vision or fusion.",
+        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+      ]
+    },
+    {
+      "temporal": "transformer",
+      "checkpoint": "/tmp/pigeon-study2/runs/transformer_3/checkpoint.pt",
+      "parameters": 354461,
+      "n_test_windows": 28,
+      "seeds": [
+        44
+      ],
+      "panic": {
+        "accuracy": 0.75,
+        "f1_macro": 0.42857142857142855,
+        "auroc": 1.0,
+        "auroc_status": "ok",
+        "ece": 0.06545170396566391,
+        "brier": 0.17924733277908486,
+        "pr_auc": 0.9999999999999998,
+        "class_counts": {
+          "negative": 21,
+          "positive": 7
+        }
+      },
+      "fear": {
+        "mae": 0.5825943350791931,
+        "rmse": 0.9998825286044573,
+        "r2": -0.49017088218733074
+      },
+      "greed": {
+        "mae": 0.4040339035647256,
+        "rmse": 0.4042157293859728,
+        "r2": null
+      },
+      "negative_findings": [
+        "This study has no rendered frames, so it does not test vision or fusion.",
+        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+      ]
+    }
+  ],
+  "status": "smoke_only_not_research_result",
+  "limitations": [
+    "The held-out split currently uses one seed, so seed-level uncertainty is not estimable.",
+    "No rendered frames were available; vision and fusion were not evaluated.",
+    "Training used a short CPU budget; this is a structured pilot, not a final claim."
+  ]
+}

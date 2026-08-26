@@ -25,6 +25,11 @@ def score(root: Path, checkpoint: Path, temporal: str):
                          "fear": float(item["targets"]["hidden_genome"][0]), "fear_pred": float(out["hidden_genome"][0,0]),
                          "greed": float(item["targets"]["hidden_genome"][1]), "greed_pred": float(out["hidden_genome"][0,1])})
     y=np.array([r["panic"] for r in rows]); p=np.array([r["panic_prob"] for r in rows]); yp=(p>=.5).astype(int)
+    try:
+        from sklearn.metrics import average_precision_score
+        pr_auc=float(average_precision_score(y,p)) if len(np.unique(y)) > 1 else None
+    except Exception:
+        pr_auc=None
     fear_metrics=regression_metrics([r["fear"] for r in rows],[r["fear_pred"] for r in rows])
     greed_metrics=regression_metrics([r["greed"] for r in rows],[r["greed_pred"] for r in rows])
     for metrics in (fear_metrics, greed_metrics):
@@ -32,7 +37,8 @@ def score(root: Path, checkpoint: Path, temporal: str):
             if not np.isfinite(value): metrics[key]=None
     result={"temporal":temporal,"checkpoint":str(checkpoint),"parameters":sum(p.numel() for p in model.parameters()),
             "n_test_windows":len(rows),"seeds":sorted(set(r["seed"] for r in rows)),
-            "panic":{**classification_metrics(y,yp,p),**calibration_metrics(y,p)},
+            "panic":{**classification_metrics(y,yp,p),**calibration_metrics(y,p),"pr_auc":pr_auc,
+                      "class_counts":{"negative":int((y==0).sum()),"positive":int((y==1).sum())}},
             "fear":fear_metrics,"greed":greed_metrics,
             "negative_findings":["This study has no rendered frames, so it does not test vision or fusion.","The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."]}
     return result
@@ -42,8 +48,8 @@ def main():
     a=ap.parse_args(); root=Path(a.dataset); out=[]
     for ck in sorted(Path(a.runs).glob("*/checkpoint.pt")):
         out.append(score(root,ck,ck.parent.name.split("_")[0]))
-    payload={"study":"Pigeon Observer Study 1","dataset_version":"pigeon-observer-v1","results":out,
+    payload={"study":"Pigeon Observer Study 2","dataset_version":"pigeon-observer-v1","results":out,
              "status":"smoke_only_not_research_result",
-             "limitations":["The held-out seed has one panic class, so AUROC and R² are undefined.","No rendered frames were available; vision and fusion were not evaluated.","Training used a short CPU budget and three scenarios, not the planned headline study."]}
+             "limitations":["The held-out split currently uses one seed, so seed-level uncertainty is not estimable.","No rendered frames were available; vision and fusion were not evaluated.","Training used a short CPU budget; this is a structured pilot, not a final claim."]}
     Path(a.output).write_text(json.dumps(payload,indent=2,allow_nan=False,default=lambda x: None)+"\n")
 if __name__ == "__main__": main()
