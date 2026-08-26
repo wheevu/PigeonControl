@@ -11,9 +11,16 @@ Decides the discrete `Pigeon.state` for the current tick:
   - on ground, moving     -> LANDING (4) / TAKEOFF (5) by vertical motion
 """
 function update_state!(p::Pigeon, w::World, eating::Bool)
-    # Threat response overrides everything else.
+    # An active fight overrides everything else (including a human threat):
+    # existing fights always finish, even if a threat appears mid-fight.
+    if p.fight_timer > 0.0f0
+        p.state = FIGHTING
+        return
+    end
+
+    # Threat response overrides normal behavior.
     if w.threat !== nothing
-        if nearest_threat(w, p.pos, THREAT_RADIUS) !== nothing
+        if nearest_threat(w, p.pos, threat_radius(p)) !== nothing
             p.state = FLEEING
             return
         end

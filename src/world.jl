@@ -166,29 +166,42 @@ function step!(w::World)
     # (a) rebuild spatial grid
     build!(w.grid, w.pigeons)
 
+    # (a2) bounded, deterministic fight initiation (skipped while a threat is present)
+    trigger_fights!(w)
+
     # (b)(c) compute forces and integrate motion
     for i in 1:n
         p = w.pigeons[i]
 
-        force  = boids_global_weight(cfg) * boids_force(w, i)
-        force += cfg.w_food  * food_force(w, i)
-        force += cfg.w_fear  * fear_force(w, i)
-        force += boundary_steer(w, p)
-        force  = clamp_force(force, cfg.max_force)
+        if p.fight_timer > 0.0f0
+            # Active fighters run authoritative ragdoll physics instead of the
+            # boids/food/fear steering.
+            ragdoll_step!(w, p, cfg)
+        else
+            force  = boids_global_weight(cfg) * boids_force(w, i)
+            force += cfg.w_food  * food_force(w, i)
+            force += cfg.w_fear  * fear_force(w, i)
+            force += boundary_steer(w, p)
+            force  = clamp_force(force, cfg.max_force)
 
-        vel = clamp_speed(p.vel + force * cfg.dt, cfg.max_speed)
-        pos = clamp_pos(p.pos + vel * cfg.dt, cfg)
+            vmax = per_pigeon_max_speed(p, cfg)
+            vel = clamp_speed(p.vel + force * cfg.dt, vmax)
+            pos = clamp_pos(p.pos + vel * cfg.dt, cfg)
 
-        p.vel   = vel
-        p.pos   = pos
-        p.speed = Float32(norm(vel))
-        if norm(vel) > 1.0f-5
-            p.heading = vel / norm(vel)
+            p.vel   = vel
+            p.pos   = pos
+            p.speed = Float32(norm(vel))
+            if norm(vel) > 1.0f-5
+                p.heading = vel / norm(vel)
+            end
         end
 
-        p.hunger += cfg.hunger_rate * cfg.dt
         p.age    += cfg.dt
+        p.hunger += cfg.hunger_rate * p.genome.metabolism * cfg.dt
         p.energy -= cfg.dt * p.genome.metabolism * 0.1f0
+        if p.fight_cooldown > 0.0f0
+            p.fight_cooldown = max(0.0f0, p.fight_cooldown - cfg.dt)
+        end
     end
 
     # (d)(e) feeding + state update + flap bookkeeping
@@ -196,23 +209,27 @@ function step!(w::World)
         p = w.pigeons[i]
 
         ate = false
-        fi = nearest_food(w, p.pos, cfg.eat_radius)
-        if fi !== nothing
-            idx, _ = fi
-            food = w.foods[idx]
-            if food.amount > 0
-                eat = min(food.amount, 5.0f0 * cfg.dt)
-                food.amount -= eat
-                p.hunger = max(0.0f0, p.hunger - eat)
-                p.energy += eat * 2.0f0
-                ate = true
+        if p.fight_timer <= 0.0f0   # fighting birds do not eat
+            fi = nearest_food(w, p.pos, cfg.eat_radius)
+            if fi !== nothing
+                idx, _ = fi
+                food = w.foods[idx]
+                if food.amount > 0
+                    eat = min(food.amount, 5.0f0 * cfg.dt)
+                    food.amount -= eat
+                    p.hunger = max(0.0f0, p.hunger - eat)
+                    p.energy += eat * 2.0f0
+                    ate = true
+                end
             end
         end
 
         update_state!(p, w, ate)
 
-        # (f) flap animation phase
-        p.flap_phase = Float32(mod(p.flap_phase + p.speed * cfg.dt * 8.0f0, 2 * π))
+        # (f) flap animation phase (ragdoll uses ragdoll_phase instead)
+        if p.fight_timer <= 0.0f0
+            p.flap_phase = Float32(mod(p.flap_phase + p.speed * cfg.dt * 8.0f0, 2 * π))
+        end
 
         # transient fear decays toward zero
         p.fear = max(0.0f0, p.fear - 0.02f0)

@@ -10,8 +10,11 @@ var _speed: float = 12.0
 var _mouse_sens: float = 0.0022
 
 func _ready() -> void:
-	look_at(Vector3(0, 0, 0), Vector3(0, 1, 0))
-	_apply_rotation()
+	look_at_from_position(position, Vector3.ZERO, Vector3.UP)
+	# Continue mouse-look from the authored starting view instead of snapping
+	# back to a level, zero-angle view on the first frame.
+	_pitch = rotation.x
+	_yaw = rotation.y
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:

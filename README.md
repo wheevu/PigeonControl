@@ -1,23 +1,38 @@
 # Pigeon Control
 ![Julia](https://img.shields.io/badge/Julia-1.12-9558B2?logo=julia&logoColor=white) ![Godot](https://img.shields.io/badge/Godot-4.7-478CBF?logo=godot&logoColor=white)
 
-*Simulating thousands of pigeons fighting over bread in a plaza.*
+*Simulating thousands of pigeons brawling over bread in a city plaza.*
 
-<p align="center"><img src="docs/pigeon.png" alt="The official portrait" width="360"></p>
+<p align="center"><img src="docs/flock.gif" width="70%" alt="A thousand pigeons swarm through the low-poly city plaza"></p>
 
-<p align="center"><img src="docs/flock.gif" width=70%></p>
-
-
+<table align="center">
+    <tr>
+      <td align="center" width="33%">
+        <img src="docs/crumb-goblin.gif" width="200" alt="Crumb Goblin tumbles through a fight with its hammer"><br>
+        <sub><b>Crumb Goblin</b> &middot; hammer</sub>
+      </td>
+      <td align="center" width="33%">
+        <img src="docs/sky-scout.gif" width="200" alt="Sky Scout spins through a fight with its wand"><br>
+        <sub><b>Sky Scout</b> &middot; wand</sub>
+      </td>
+      <td align="center" width="33%">
+        <img src="docs/bruiser.gif" width="200" alt="Bruiser ragdolls through a fight with its bomb"><br>
+        <sub><b>Bruiser</b> &middot; bomb</sub>
+      </td>
+    </tr>
+  </table>
 
 ## What this is
 
 A 3D pigeon swarm simulation split across two processes.
-Julia owns all simulation state and steps thousands of birds through flocking, feeding, and fear behaviors.
+Julia owns all simulation state and steps thousands of birds through flocking, feeding, fear, and autonomous goofy combat.
 Godot receives binary snapshots over UDP and draws them.
 Neither side can do the other's job, so there is no shared mutable state and no argument about who moved a pigeon.
+Julia alone owns the fights and the ragdoll physics.
+Godot only renders snapshots and never chooses who brawls or how a body tumbles.
 
 This is the successor to [dots-sim](https://github.com/wheevu/dots-sim).
-The dots became pigeons, the arena became a 50 by 50 meter plaza, and the behaviors became actual simulation work: hunger drives pigeons toward food, threats scatter them, and every bird carries a genome that weights those urges differently.
+The dots became pigeons, the arena became a 50 by 50 meter plaza, and the behaviors became actual simulation work: hunger drives pigeons toward food, threats scatter them, and **every** bird carries a genome that weights those urges differently.
 
 The default seed `69420` reproduces "The Great Bread Massacre".
 Same seed, same config, same inputs, same stampede.
@@ -26,13 +41,14 @@ That determinism is what makes the behavior tunable instead of guessable.
 ## Features
 
 - Thousands of boids, each with a genome that scales cohesion, alignment, separation, greed, and cowardice individually.
+- Four deterministic pigeon archetypes: Common, Crumb Goblin, Sky Scout, and Bruiser. Each has a distinct silhouette and genome bias, and fights with a derived weapon (sword, hammer, wand, bomb).
 - Eight behavior states: flying, walking, eating, fleeing, landing, takeoff, fighting, perching.
 - Bread drops create real food competition; pigeons within eating radius drain a crumb until it is gone.
-- Humans are threats: any pigeon inside 12 meters flees, scaled by how close it is and how fearful its genome says it is.
+- Humans are threats: outside an active fight, each pigeon flees when a human enters its own vision radius (`12m * genome.vision`), with fear force scaled by `genome.fear` and proximity.
 - A custom binary UDP protocol that ships snapshots in one packet when small and fragments them past 8000 bytes.
 - A renderer with no authority. Godot poses meshes; it never decides a pigeon's next move.
 - Live control while the sim runs: drop bread, spawn a human, clear the plaza.
-- A 2.5D park: billboarded Kenney pixel-art cards (statue, fountain, benches, trees, flowers, birdhouses), each grounded by a soft blob shadow, on a warm plaza.
+- A low-poly city plaza built from authored CC0 park and neighborhood models, with roads, crossings, houses, trees, benches, lamps, and a fountain framing the open square.
 
 ## Architecture
 
@@ -83,7 +99,7 @@ Install Julia dependencies once:
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
-Run the test suite (T1-T6, determinism, serialization contract, behavior):
+Run the test suite (T1-T12 plus control-channel coverage, determinism, serialization contract, behavior):
 
 ```bash
 julia --project=. test/runtests.jl
@@ -100,6 +116,10 @@ cd godot && godot --headless -s res://scripts/_fragtest.gd
 
 - [docs/PROTOCOL.md](docs/PROTOCOL.md): the canonical wire specification.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): module map and data flow.
+
+## Third-party assets
+
+All bundled art is CC0/public domain. Per-pack creator, source, and license records live in the `ATTRIBUTION.md` files under `godot/assets/`.
 
 ## Limitations
 

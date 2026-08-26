@@ -7,6 +7,16 @@ class_name SnapshotParser
 #   Pigeon 40 bytes: id u32, pos_x f32, pos_y f32, pos_z f32, yaw f32, pitch f32, roll f32,
 #                     state u8, variant u8, flap_phase f32, speed f32, pad2
 #   Food 16 bytes: id u32, pos_x f32, pos_y f32, pos_z f32
+#
+# Archetypes (derived from `variant`, NOT sent on the wire):
+#   0 Common       -> Sword
+#   1 Crumb Goblin -> Hammer
+#   2 Sky Scout    -> Wand
+#   3 Bruiser      -> Bomb
+# Unknown variants remain parseable; the renderer should fall back to Common
+# and hide the weapon. The weapon is shown only while state == FIGHTING (6).
+# FIGHTING pitch/roll carry Julia's authoritative ragdoll pose; Godot only
+# interpolates. The 2 pad bytes per pigeon (offsets 38-39) stay reserved zero.
 
 const MAGIC: int = 0x50494345
 
@@ -29,6 +39,13 @@ static func parse_snapshot(bytes: PackedByteArray) -> Dictionary:
 		return result
 
 	# version = bytes[4]; pad bytes 5,6,7
+	# Reject unsupported protocol versions before decoding counts.
+	var version: int = bytes[4]
+	if version != 1:
+		result["error"] = "unsupported protocol version: %d (expected 1)" % version
+		result["ok"] = false
+		return result
+
 	var tick: int = bytes.decode_u32(8)
 	var pigeon_count: int = bytes.decode_u32(12)
 	var food_count: int = bytes.decode_u32(16)

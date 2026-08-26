@@ -1,5 +1,12 @@
 # PigeonControl: pigeon genome, struct, and spawner.
 
+# ----- archetype (variant) constants -----
+# Immutable pigeon archetype, assigned deterministically as UInt8((id - 1) % 4).
+const PIGEON_COMMON       = 0x00
+const PIGEON_CRUMB_GOBLIN = 0x01
+const PIGEON_SKY_SCOUT    = 0x02
+const PIGEON_BRUISER      = 0x03
+
 """
 Genome holds first-class behavioral multipliers (centered on 1.0) for a pigeon.
 All fields are Float32 and represent a relative weight applied to the
@@ -40,6 +47,53 @@ function Genome(rng::AbstractRNG)
 end
 
 """
+`Genome(rng, variant::UInt8)`
+
+Generate the balanced (Common) genome first, then apply the archetype bias and
+re-clamp. Preserves `Genome(rng)` as balanced Common behavior.
+"""
+function Genome(rng::AbstractRNG, variant::UInt8)
+    apply_variant_bias(Genome(rng), variant)
+end
+
+"""
+`apply_variant_bias(g::Genome, variant::UInt8) -> Genome`
+
+Multiply the relevant genes by the archetype's bias multipliers, then re-clamp
+to the sane [0.1, 3.0] range. Common (variant 0) is identity (1.0x everywhere).
+"""
+function apply_variant_bias(g::Genome, variant::UInt8)
+    greed      = g.greed
+    metabolism = g.metabolism
+    speed      = g.speed
+    fear       = g.fear
+    vision     = g.vision
+    aggression = g.aggression
+    size       = g.size
+
+    if variant == PIGEON_CRUMB_GOBLIN
+        greed      *= 1.75f0
+        metabolism *= 1.50f0
+        speed      *= 0.78f0
+    elseif variant == PIGEON_SKY_SCOUT
+        fear   *= 1.60f0
+        vision *= 1.50f0
+        speed  *= 1.25f0
+    elseif variant == PIGEON_BRUISER
+        aggression *= 1.80f0
+        size       *= 1.35f0
+        fear       *= 0.55f0
+    end
+
+    clamp1(x) = Float32(clamp(x, 0.1, 3.0))
+    Genome(
+        g.cohesion, g.separation, g.alignment,
+        clamp1(greed), clamp1(fear), clamp1(aggression), g.curiosity,
+        clamp1(speed), clamp1(vision), clamp1(size), clamp1(metabolism),
+    )
+end
+
+"""
 A single pigeon agent.
 
 NOTE: declared `mutable` because `step!` updates fields in place
@@ -62,10 +116,15 @@ mutable struct Pigeon
     flap_phase::Float32
     speed::Float32
     age::Float32
+    fight_timer::Float32     # > 0 while actively fighting (ragdoll)
+    fight_cooldown::Float32  # > 0 after a fight ends, blocks re-fight
+    ragdoll_phase::Float32   # rotation phase used by the ragdoll animation
 end
 
 function Pigeon(id::Integer, rng::AbstractRNG, cfg)
-    g = Genome(rng)
+    # Archetype is an immutable property assigned deterministically by id.
+    variant = UInt8((Int(id) - 1) % 4)
+    g = Genome(rng, variant)
     # Spawn inside the arena, at low altitude (y in 0.5..3) per the brief.
     x = Float32((rand(rng) * 2 - 1) * cfg.arena_half * 0.9)
     z = Float32((rand(rng) * 2 - 1) * cfg.arena_half * 0.9)
@@ -88,11 +147,14 @@ function Pigeon(id::Integer, rng::AbstractRNG, cfg)
         0.0f0,                         # fear (transient)
         Float32(rand(rng) * 50 + 50), # energy
         0x00,                          # state (FLYING default; FLYING defined in protocol)
-        UInt8(rand(rng, 0:2)),         # variant 0..2
+        variant,                       # archetype, deterministic
         -1,                            # target_food
         g,
         Float32(rand(rng) * 2 * π),    # flap_phase
         0.0f0,                         # speed
         0.0f0,                         # age
+        0.0f0,                         # fight_timer
+        0.0f0,                         # fight_cooldown
+        0.0f0,                         # ragdoll_phase
     )
 end

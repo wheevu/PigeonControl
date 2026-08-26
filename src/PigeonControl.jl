@@ -20,7 +20,8 @@ include("world.jl")              # Food, SimConfig, World, make_world, step!, bo
 include("spatial/queries.jl")    # nearest_food, nearest_threat, query_neighbors
 include("behavior/flocking.jl")  # boids_force
 include("behavior/feeding.jl")   # food_force
-include("behavior/fear.jl")      # fear_force
+include("behavior/fear.jl")      # fear_force, threat_radius
+include("behavior/combat.jl")     # weapon_spec, start_fight!, trigger_fights!, ragdoll_step!
 include("behavior/decision.jl")  # update_state!
 include("protocol/snapshot.jl")  # MAGIC, PROTOCOL_VERSION, state consts, serialize/parse
 include("protocol/control.jl")    # apply_command! and control-channel helpers
@@ -34,5 +35,8 @@ export SpatialGrid, build!, neighbors
 export nearest_food, nearest_threat, query_neighbors
 export boids_force, food_force, fear_force, update_state!, boundary_steer
 export apply_command!, add_bread!, spawn_human!, clear_human!, kill_the_sun!
+export PIGEON_COMMON, PIGEON_CRUMB_GOBLIN, PIGEON_SKY_SCOUT, PIGEON_BRUISER
+export weapon_spec, start_fight!, trigger_fights!, ragdoll_step!
+export fight_chance, per_pigeon_max_speed, threat_radius, apply_variant_bias
 
 end # module

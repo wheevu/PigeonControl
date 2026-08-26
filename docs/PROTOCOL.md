@@ -99,12 +99,42 @@ The 3 pad bytes at offset 5 are reserved and must be zero.
 | 6 | FIGHTING |
 | 7 | PERCHING |
 
+## Archetypes and derived weapons
+
+The `variant` field (offset 29) selects one of four archetypes.
+Weapons are derived, not sent on the wire. The table below is the single source of truth shared between the Julia serializer and the Godot renderer.
+
+| Variant | Archetype | Derived weapon |
+| --- | --- | --- |
+| 0 | Common | Sword |
+| 1 | Crumb Goblin | Hammer |
+| 2 | Sky Scout | Wand |
+| 3 | Bruiser | Bomb |
+
+The renderer decides the weapon only from `variant`.
+Unknown variants remain parseable; the renderer should fall back to Common and hide the weapon.
+The weapon is visually shown only while `state == FIGHTING` (6).
+The pad bytes (offsets 38-39 on each pigeon record) stay reserved and must remain zero; they are not used for any archetype or weapon data.
+
+When `state == FIGHTING`, the `pitch` and `roll` fields carry Julia's authoritative ragdoll pose for that pigeon.
+Julia derives an exaggerated but finite orientation from a per-pigeon `ragdoll_phase` while the pigeon is fighting (or its fight timer is still counting down): `pitch = 0.8 * sin(phase)` and `roll` wrapped into `-pi..pi`.
+Godot interpolates these values only; it never computes ragdoll orientation itself.
+
+## Version handling
+
+The parser must reject any packet whose `version` byte is not `1`.
+A mismatch is a hard error (Julia `parse_snapshot` throws; the Godot `SnapshotParser` returns `ok = false` with an unsupported-version error) and decoding must not continue.
+The header layout, record order, 40-byte pigeon record, and 16-byte food record are unchanged from v1.
+
 ## Control commands
 
 Text UDP on port `snapshot_port + 1` (default 5001), one command per packet:
 
 - `DROP_BREAD x y z amount` — scatter `amount` (integer count, clamped to 1..200) bread crumbs in a 1.5 m disk centered at `(x, max(y,0.2), z)`. Each crumb is a `Food` with `amount = 50.0`. Pigeons swarm and eat them.
-- `SPAWN_HUMAN x y z` — set the world's single threat position to `(x, y, z)`. Pigeons within `THREAT_RADIUS` (12 m) flee (state FLEEING).
+- `SPAWN_HUMAN x y z` — set the world's single threat position to `(x, y, z)`.
+  Each pigeon detects the threat within an effective radius of `THREAT_RADIUS` (12 m) multiplied by its own `genome.vision`.
+  A non-fighting pigeon that detects the threat enters FLEEING, while the repulsion strength applied to it depends on its `genome.fear` and proximity to the threat.
+  An active fight finishes before either pigeon responds to the threat.
 - `CLEAR_HUMAN` — clear the threat (`nothing`).
 - `KILL_THE_SUN` — no-op (kept for protocol completeness).
 

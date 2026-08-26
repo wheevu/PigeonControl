@@ -40,14 +40,32 @@ function serialize_snapshot(w::World)
         sp = norm(p.vel)
         v  = sp > 1.0f-4 ? p.vel : p.heading
         nn = norm(v) + 1.0f-6
-        yaw   = atan(v[1], v[3])
+        yaw   = atan(v[1], v[3])                       # heading from horizontal velocity
         pitch = asin(clamp(v[2] / nn, -1.0f0, 1.0f0))
         roll  = 0.0f0
+
+        # Fighting / ragdoll: derive exaggerated but finite orientation from
+        # p.ragdoll_phase while the pigeon is FIGHTING (state 6) or its
+        # fight_timer is still counting down. yaw stays the heading as today;
+        # pitch and roll become the ragdoll pose. Weapon is NOT sent on the
+        # wire: the renderer derives it from `variant` and shows it only while
+        # state == FIGHTING. These fields are added by the simulation worker,
+        # so guard access until they land.
+        has_ragdoll = hasfield(typeof(p), :ragdoll_phase)
+        fight_active = has_ragdoll &&
+            (p.state == FIGHTING ||
+             (hasfield(typeof(p), :fight_timer) && p.fight_timer > 0))
+        if fight_active
+            phase = p.ragdoll_phase
+            pitch = 0.8f0 * sin(phase)
+            roll  = mod(phase + π, 2π) - π             # bounded -π..π
+        end
+
         write(io, Float32(yaw)); write(io, Float32(pitch)); write(io, Float32(roll))
 
         write(io, UInt8(p.state)); write(io, UInt8(p.variant))
         write(io, Float32(p.flap_phase)); write(io, Float32(p.speed))
-        write(io, 0x00); write(io, 0x00)               # 2 pad bytes
+        write(io, 0x00); write(io, 0x00)               # 2 pad bytes (reserved, zero)
     end
 
     for f in w.foods
@@ -70,6 +88,8 @@ function parse_snapshot(bytes::Vector{UInt8})
     magic   = read(io, UInt32)
     magic == MAGIC || error("parse_snapshot: bad magic 0x$(string(magic, base=16))")
     version = read(io, UInt8)
+    version == PROTOCOL_VERSION ||
+        error("parse_snapshot: unsupported protocol version $version (expected $PROTOCOL_VERSION)")
     skip(io, 3)
     tick = read(io, UInt32)
     np   = read(io, UInt32)

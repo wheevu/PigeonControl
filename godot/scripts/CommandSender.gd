@@ -11,12 +11,19 @@ var peer: PacketPeerUDP
 var human_marker: Node3D
 var hud: Label
 
+# Capture runs suppress the HUD so frames are clean. Normal game HUD is
+# unchanged.
+func _capture_clean() -> bool:
+	return OS.get_environment("CAPTURE_CLEAN") == "1" \
+		or OS.get_environment("CAPTURE_MODE").strip_edges() != ""
+
 func setup(cam: Camera3D, port: int) -> void:
 	camera = cam
 	ctrl_port = port
 	peer = PacketPeerUDP.new()
 	_build_human_marker()
-	_build_hud()
+	if not _capture_clean():
+		_build_hud()
 
 func _build_human_marker() -> void:
 	if get_tree() == null or get_tree().root == null:

@@ -50,6 +50,7 @@ Two layers, one contract. Julia is the brain that owns reality. Godot 4.x is the
 - `behavior/feeding.jl` - bread seeking and eating.
 - `behavior/fear.jl` - human/flee response.
 - `behavior/decision.jl` - per-pigeon state machine.
+- `behavior/combat.jl` - fight initiation, `fight_timer`, and `ragdoll_phase` updates.
 - `protocol/snapshot.jl` - serialize and parse snapshots.
 - `experiments/run_server.jl` - UDP server entry point.
 
@@ -67,11 +68,12 @@ Two layers, one contract. Julia is the brain that owns reality. Godot 4.x is the
 ## Data flow
 
 - `step!(world)` advances the simulation one tick.
-- `serialize_snapshot(world)` packs the header, pigeon records, and food records into bytes.
+- `behavior/combat.jl` runs inside the step: it sets `state = FIGHTING`, drives a per-pigeon `fight_timer` down, and advances `ragdoll_phase` for the ragdoll pose. Julia owns this batched fight state; Godot never decides who is fighting or how a body tumbles.
+- `serialize_snapshot(world)` packs the header, pigeon records, and food records into bytes. For fighting pigeons it derives the exaggerated-but-finite `pitch`/`roll` ragdoll orientation from `ragdoll_phase`; the archetype weapon is never sent, only `variant` is.
 - The bytes go out over UDP on port 5000.
 - `SnapshotReceiver.gd` reads the packet.
 - `SnapshotParser.gd` decodes the bytes into structures.
-- `Swarm.gd` writes transforms onto the `MultiMeshInstance3D`.
+- `Swarm.gd` writes transforms onto the `MultiMeshInstance3D` and derives the weapon from `variant`, showing it only while `state == FIGHTING`. Rendering is instanced: Godot interpolates between snapshots for smoothness but never feeds state back into the sim.
 - Control commands flow the other way on port 5001 and feed back into the next `step!`.
 
 ## Roadmap

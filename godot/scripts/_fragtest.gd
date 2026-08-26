@@ -22,6 +22,9 @@ func put_f32(b: PackedByteArray, v: float) -> void:
 	b.append_array(sp.data_array)
 
 func build_pigeon(b: PackedByteArray, id: int) -> void:
+	# variant cycles 0..3 across the four archetypes (Common/Crumb Goblin/
+	# Sky Scout/Bruiser) so a fragmented frame exercises every weapon. The
+	# renderer derives the weapon from `variant`; it is never sent on the wire.
 	put_u32(b, id)
 	put_f32(b, float(id) * 0.1)
 	put_f32(b, 1.0)
@@ -30,10 +33,10 @@ func build_pigeon(b: PackedByteArray, id: int) -> void:
 	put_f32(b, 0.0)
 	put_f32(b, -0.1)
 	b.append(0)            # state
-	b.append(1)            # variant
+	b.append(id % 4)       # variant (cycles 0..3)
 	put_f32(b, 0.3)        # flap_phase
 	put_f32(b, 2.0)        # speed
-	b.append(0); b.append(0)  # pad
+	b.append(0); b.append(0)  # pad (reserved, zero)
 
 func build_food(b: PackedByteArray, id: int) -> void:
 	put_u32(b, id)
@@ -104,6 +107,16 @@ func _initialize():
 	var p0: Dictionary = got["pigeons"][0]
 	if abs(p0["x"] - 0.1) > 1e-3 or p0["state"] != 0:
 		_done(1, "FRAGTEST_FAIL: first pigeon fields wrong (x=%f state=%d)" % [p0["x"], p0["state"]])
+		return
+	if p0["variant"] != 1:   # id 1 -> 1 % 4 == 1 (Crumb Goblin)
+		_done(1, "FRAGTEST_FAIL: first pigeon variant wrong (got %d want 1)" % p0["variant"])
+		return
+	# Confirm the four archetypes parse across the fragmented frame (id%4 spans 0..3).
+	var seen_variants: Dictionary = {}
+	for pg in got["pigeons"]:
+		seen_variants[pg["variant"]] = true
+	if not (seen_variants.has(0) and seen_variants.has(1) and seen_variants.has(2) and seen_variants.has(3)):
+		_done(1, "FRAGTEST_FAIL: fragmented frame did not exercise all four variants")
 		return
 	_done(0, "FRAGTEST_OK pigeons=%d foods=%d fragments=%d" % [pigeons, foods, count])
 	return
