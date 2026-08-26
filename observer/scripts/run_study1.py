@@ -12,8 +12,8 @@ from pigeon_observer.data import ObserverSequenceDataset
 from pigeon_observer.training import load_checkpoint
 from pigeon_observer.evaluation.metrics import classification_metrics, regression_metrics, calibration_metrics
 
-def score(root: Path, checkpoint: Path, temporal: str):
-    ds = ObserverSequenceDataset(root, "test", mode="telemetry", sequence_length=8, horizon=6)
+def collect(root: Path, checkpoint: Path, split: str):
+    ds = ObserverSequenceDataset(root, split, mode="telemetry", sequence_length=8, horizon=6)
     model, meta = load_checkpoint(checkpoint, map_location="cpu")
     model.eval(); rows=[]
     with torch.no_grad():
@@ -24,18 +24,22 @@ def score(root: Path, checkpoint: Path, temporal: str):
                          "panic_prob": float(torch.sigmoid(out["panic_logits"])[0]),
                          "fear": float(item["targets"]["hidden_genome"][0]), "fear_pred": float(out["hidden_genome"][0,0]),
                          "greed": float(item["targets"]["hidden_genome"][1]), "greed_pred": float(out["hidden_genome"][0,1])})
-    y=np.array([r["panic"] for r in rows]); p=np.array([r["panic_prob"] for r in rows]); yp=(p>=.5).astype(int)
-    try:
-        from sklearn.metrics import average_precision_score
-        pr_auc=float(average_precision_score(y,p)) if len(np.unique(y)) > 1 else None
-    except Exception:
-        pr_auc=None
+    return rows, sum(p.numel() for p in model.parameters())
+
+def score(root: Path, checkpoint: Path, temporal: str):
+    val_rows, _ = collect(root, checkpoint, "validation")
+    test_rows, params = collect(root, checkpoint, "test")
+    vy=np.array([r["panic"] for r in val_rows]); vp=np.array([r["panic_prob"] for r in val_rows])
+    thresholds=np.linspace(0.05,0.95,19); threshold=max(thresholds, key=lambda t: float(2*np.sum((vp>=t)&(vy==1))/(max(1,np.sum(vp>=t))+max(1,np.sum(vy==1)))))
+    rows=test_rows; y=np.array([r["panic"] for r in rows]); p=np.array([r["panic_prob"] for r in rows]); yp=(p>=threshold).astype(int)
+    from sklearn.metrics import average_precision_score
+    pr_auc=float(average_precision_score(y,p)) if len(np.unique(y)) > 1 else None
     fear_metrics=regression_metrics([r["fear"] for r in rows],[r["fear_pred"] for r in rows])
     greed_metrics=regression_metrics([r["greed"] for r in rows],[r["greed_pred"] for r in rows])
     for metrics in (fear_metrics, greed_metrics):
         for key, value in list(metrics.items()):
             if not np.isfinite(value): metrics[key]=None
-    result={"temporal":temporal,"checkpoint":str(checkpoint),"parameters":sum(p.numel() for p in model.parameters()),
+    result={"temporal":temporal,"checkpoint":str(checkpoint),"parameters":params,"validation_threshold":float(threshold),
             "n_test_windows":len(rows),"seeds":sorted(set(r["seed"] for r in rows)),
             "panic":{**classification_metrics(y,yp,p),**calibration_metrics(y,p),"pr_auc":pr_auc,
                       "class_counts":{"negative":int((y==0).sum()),"positive":int((y==1).sum())}},
