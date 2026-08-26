@@ -49,6 +49,8 @@ def _collate(samples):
             out[k] = torch.stack(vals, 0)
         elif isinstance(vals[0], dict):
             out[k] = _collate(vals)
+        elif isinstance(vals[0], (str, list, tuple)):
+            out[k] = vals
         else:
             out[k] = torch.tensor(np.array(vals))
     return out

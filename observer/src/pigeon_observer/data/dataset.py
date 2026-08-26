@@ -143,8 +143,10 @@ class ObserverSequenceDataset:
         fear_name = "transient_fear" if "transient_fear" in pig_tbl.column_names else "fear"
         fear = pig_tbl.column(fear_name).to_numpy(zero_copy_only=False)[p_order]
         state = pig_tbl.column("state").to_numpy(zero_copy_only=False)[p_order]
-        g_fear = pig_tbl.column("genome_fear").to_numpy(zero_copy_only=False)[p_order]
-        g_greed = pig_tbl.column("genome_greed").to_numpy(zero_copy_only=False)[p_order]
+        gf_name = "genome_fear" if "genome_fear" in pig_tbl.column_names else "g_fear"
+        gg_name = "genome_greed" if "genome_greed" in pig_tbl.column_names else "g_greed"
+        g_fear = pig_tbl.column(gf_name).to_numpy(zero_copy_only=False)[p_order]
+        g_greed = pig_tbl.column(gg_name).to_numpy(zero_copy_only=False)[p_order]
 
         F = S.TELEMETRY_FEATURE_DIM
         feat = np.zeros((N, F), dtype=np.float64)

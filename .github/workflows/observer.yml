@@ -1,0 +1,74 @@
+name: observer
+
+# Offline observer / evaluation CI.
+#
+# CPU-only. Never requires a GPU or an interactive Godot session.
+# The two runtime lanes are kept separate:
+#   * `julia-runtime` preserves the existing PigeonControl Julia test suite
+#     (test/runtests.jl) and adds a generator smoke that runs only when the
+#     sibling experiments/generate_observer_dataset.jl is present.
+#   * `observer-python` installs the observer package and runs the observer
+#     package's own tests. Sibling-owned test files (data / training modules)
+#     are validated by their respective owners and are intentionally not part
+#     of this job so a sibling-in-progress module cannot red the observer lane.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  observer-python:
+    name: observer python tests (CPU)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install observer package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e observer/
+      - name: Run observer tests
+        run: |
+          pytest observer/tests/test_metrics.py \
+                 observer/tests/test_retrieval.py \
+                 observer/tests/test_cli.py \
+                 observer/tests/test_fixture_validation.py -q
+
+  julia-runtime:
+    name: julia runtime + generator smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.12"
+      - name: Instantiate and run Julia test suite (preserved)
+        run: |
+          julia --project=. -e 'using Pkg; Pkg.instantiate()'
+          julia --project=. test/runtests.jl
+      - name: Generator smoke (only if sibling script exists)
+        run: |
+          if [ -f experiments/generate_observer_dataset.jl ]; then
+            julia --project=. experiments/generate_observer_dataset.jl --smoke --output /tmp/obs_smoke
+          else
+            echo "experiments/generate_observer_dataset.jl not present (owned by sibling); skipping generator smoke."
+          fi
+
+  godot-observer:
+    name: godot observer test (optional)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Godot observer test only if Godot is installed cheaply
+        run: |
+          if command -v godot >/dev/null 2>&1; then
+            godot --headless --path godot -s res://scripts/observer_selftest.gd
+          else
+            echo "Godot not installed in CI; skipping interactive/observer Godot test (CI must never require it)."
+          fi
