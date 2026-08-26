@@ -30,7 +30,12 @@ def score(root: Path, checkpoint: Path, temporal: str):
     val_rows, _ = collect(root, checkpoint, "validation")
     test_rows, params = collect(root, checkpoint, "test")
     vy=np.array([r["panic"] for r in val_rows]); vp=np.array([r["panic_prob"] for r in val_rows])
-    thresholds=np.linspace(0.05,0.95,19); threshold=max(thresholds, key=lambda t: float(2*np.sum((vp>=t)&(vy==1))/(max(1,np.sum(vp>=t))+max(1,np.sum(vy==1)))))
+    thresholds=np.linspace(0.05,0.95,19)
+    def f1_at(t):
+        pred=vp>=t; tp=np.sum(pred & (vy==1)); fp=np.sum(pred & (vy==0)); fn=np.sum((~pred) & (vy==1))
+        precision=tp/max(1,tp+fp); recall=tp/max(1,tp+fn)
+        return 2*precision*recall/max(1e-12,precision+recall)
+    threshold=max(thresholds, key=f1_at)
     rows=test_rows; y=np.array([r["panic"] for r in rows]); p=np.array([r["panic_prob"] for r in rows]); yp=(p>=threshold).astype(int)
     from sklearn.metrics import average_precision_score
     pr_auc=float(average_precision_score(y,p)) if len(np.unique(y)) > 1 else None
@@ -52,8 +57,8 @@ def main():
     a=ap.parse_args(); root=Path(a.dataset); out=[]
     for ck in sorted(Path(a.runs).glob("*/checkpoint.pt")):
         out.append(score(root,ck,ck.parent.name.split("_")[0]))
-    payload={"study":"Pigeon Observer Study 2","dataset_version":"pigeon-observer-v1","results":out,
+    payload={"study":"Pigeon Observer Study 3","dataset_version":"pigeon-observer-v1","results":out,
              "status":"smoke_only_not_research_result",
-             "limitations":["The held-out split currently uses one seed, so seed-level uncertainty is not estimable.","No rendered frames were available; vision and fusion were not evaluated.","Training used a short CPU budget; this is a structured pilot, not a final claim."]}
+             "limitations":["The held-out split contains two seeds, so uncertainty remains wide.","No rendered frames were available; vision and fusion were not evaluated.","GRU and Transformer parameter counts are not matched."]}
     Path(a.output).write_text(json.dumps(payload,indent=2,allow_nan=False,default=lambda x: None)+"\n")
 if __name__ == "__main__": main()

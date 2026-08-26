@@ -1,5 +1,5 @@
 {
-  "study": "Pigeon Observer Study 2",
+  "study": "Pigeon Observer Study 3",
   "dataset_version": "pigeon-observer-v1",
   "results": [
     {
@@ -233,8 +233,8 @@
   ],
   "status": "smoke_only_not_research_result",
   "limitations": [
-    "The held-out split currently uses one seed, so seed-level uncertainty is not estimable.",
+    "The held-out split contains two seeds, so uncertainty remains wide.",
     "No rendered frames were available; vision and fusion were not evaluated.",
-    "Training used a short CPU budget; this is a structured pilot, not a final claim."
+    "GRU and Transformer parameter counts are not matched."
   ]
 }
