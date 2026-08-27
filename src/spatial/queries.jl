@@ -34,14 +34,19 @@ Return indices of pigeons within `radius` of pigeon `i` (excluding `i`).
 """
 function query_neighbors(world::World, i::Int, radius::Float32)
     p = world.pigeons[i]
-    cand = neighbors(world.grid, p.pos, radius)
     out = Int[]
     r2 = radius * radius
-    for idx in cand
-        idx == i && continue
-        d = p.pos - world.pigeons[idx].pos
-        if dot(d, d) <= r2
-            push!(out, idx)
+    key = cell_key(world.grid, p.pos)
+    for dx in -1:1, dy in -1:1, dz in -1:1
+        bucket = get(world.grid.buckets,
+            (key[1] + dx, key[2] + dy, key[3] + dz), nothing)
+        bucket === nothing && continue
+        for idx in bucket
+            idx == i && continue
+            d = p.pos - world.pigeons[idx].pos
+            if dot(d, d) <= r2
+                push!(out, idx)
+            end
         end
     end
     return out

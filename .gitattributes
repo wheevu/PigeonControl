@@ -4,3 +4,7 @@
 # language statistics so the repository's primary language reflects the simulation,
 # not the view layer.
 *.gd linguist-detectable=false
+
+# The observer is a separate offline research lane. Keep the repository's
+# primary language focused on the Julia simulation.
+observer/** linguist-detectable=false

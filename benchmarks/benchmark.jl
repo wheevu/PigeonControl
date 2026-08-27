@@ -14,6 +14,12 @@ function benchmark(; n=2000, steps=120, seed=UInt32(69420))
     return rate
 end
 
+function sweep(; steps=120)
+    for n in (100, 500, 1000, 2000)
+        benchmark(; n=n, steps=steps)
+    end
+end
+
 if abspath(PROGRAM_FILE) == @__FILE__
-    benchmark()
+    sweep()
 end

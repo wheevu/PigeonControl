@@ -46,7 +46,7 @@ function summarize(world::World)
     println("food left:   ", round(food_left, digits = 1))
     println("mean speed:  ", round(mean(speeds), digits = 2))
     println("mean hunger: ", round(mean(hungers), digits = 2))
-    println("state mix:   ", sort!(counts))
+    println("state mix:   ", sort(collect(counts)))
     return counts
 end
 

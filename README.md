@@ -127,8 +127,9 @@ The server pairs with a listener.
 On macOS, sending a UDP datagram to a closed port can block indefinitely, so run Godot, or any listener, on the snapshot port.
 With a listener present, sends return instantly and the server exits cleanly on duration or Ctrl-C.
 
-The checked-in benchmark reports 59.29 simulation steps/s for 2,000 pigeons over 120 steps on the development machine.
+The checked-in benchmark reports roughly 146 simulation steps/s for 2,000 pigeons over 120 steps on the development machine.
 That is a simulation-only measurement after warm-up, not a rendered 60 fps claim.
+The benchmark sweeps 100, 500, 1,000, and 2,000 pigeons.
 The benchmark lives in `benchmarks/benchmark.jl` and is the baseline for future SoA, threading, and allocation work.
 
 ## Observer and evaluation (experimental)
