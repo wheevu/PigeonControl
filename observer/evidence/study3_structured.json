@@ -37,7 +37,7 @@
       },
       "negative_findings": [
         "This study has no rendered frames, so it does not test vision or fusion.",
-        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+        "The held-out split contains two seeds, so seed-level uncertainty remains wide."
       ]
     },
     {
@@ -75,7 +75,7 @@
       },
       "negative_findings": [
         "This study has no rendered frames, so it does not test vision or fusion.",
-        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+        "The held-out split contains two seeds, so seed-level uncertainty remains wide."
       ]
     },
     {
@@ -113,7 +113,7 @@
       },
       "negative_findings": [
         "This study has no rendered frames, so it does not test vision or fusion.",
-        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+        "The held-out split contains two seeds, so seed-level uncertainty remains wide."
       ]
     },
     {
@@ -151,7 +151,7 @@
       },
       "negative_findings": [
         "This study has no rendered frames, so it does not test vision or fusion.",
-        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+        "The held-out split contains two seeds, so seed-level uncertainty remains wide."
       ]
     },
     {
@@ -189,7 +189,7 @@
       },
       "negative_findings": [
         "This study has no rendered frames, so it does not test vision or fusion.",
-        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+        "The held-out split contains two seeds, so seed-level uncertainty remains wide."
       ]
     },
     {
@@ -227,7 +227,7 @@
       },
       "negative_findings": [
         "This study has no rendered frames, so it does not test vision or fusion.",
-        "The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."
+        "The held-out split contains two seeds, so seed-level uncertainty remains wide."
       ]
     }
   ],

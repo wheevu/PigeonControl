@@ -49,7 +49,7 @@ def score(root: Path, checkpoint: Path, temporal: str):
             "panic":{**classification_metrics(y,yp,p),**calibration_metrics(y,p),"pr_auc":pr_auc,
                       "class_counts":{"negative":int((y==0).sum()),"positive":int((y==1).sum())}},
             "fear":fear_metrics,"greed":greed_metrics,
-            "negative_findings":["This study has no rendered frames, so it does not test vision or fusion.","The test set contains one seed and is smoke-scale; confidence intervals and headline research claims are deferred."]}
+            "negative_findings":["This study has no rendered frames, so it does not test vision or fusion.","The held-out split contains two seeds, so seed-level uncertainty remains wide."]}
     return result
 
 def main():

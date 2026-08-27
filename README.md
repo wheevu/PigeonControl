@@ -138,8 +138,8 @@ Julia owns generation (`experiments/generate_observer_dataset.jl`); Godot is use
 The CLI exposes exactly seven commands: `generate`, `validate`, `train`, `evaluate`, `embed`, `retrieve`, `figures`.
 
 ```bash
-# Build a dataset for all 12 scenarios and one seed, then validate it.
-pigeon-observer generate --scenario baseline_idle --seed 69420 --output data/obs
+# Build a small baseline dataset, then validate it.
+pigeon-observer generate --scenario baseline_flocking --seed 69420 --output data/obs
 pigeon-observer validate --dataset data/obs
 
 # Train, evaluate into a fresh run directory, embed, and retrieve neighbors.
