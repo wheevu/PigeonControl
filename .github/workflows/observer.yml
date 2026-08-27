@@ -32,7 +32,7 @@ jobs:
           pip install -e observer/
       - name: Run observer tests
         run: |
-          pytest observer/tests/test_metrics.py \
+          python -m pytest observer/tests/test_metrics.py \
                  observer/tests/test_retrieval.py \
                  observer/tests/test_cli.py \
                  observer/tests/test_fixture_validation.py -q
@@ -55,7 +55,9 @@ jobs:
       - name: Generator smoke (only if sibling script exists)
         run: |
           if [ -f experiments/generate_observer_dataset.jl ]; then
-            julia --project=. experiments/generate_observer_dataset.jl --smoke --output /tmp/obs_smoke
+            julia --project=. experiments/generate_observer_dataset.jl \
+              --output /tmp/obs_smoke --scenario baseline_flocking \
+              --seed 7 --n 8 --steps 4 --sample-every 2
           else
             echo "experiments/generate_observer_dataset.jl not present (owned by sibling); skipping generator smoke."
           fi
@@ -68,7 +70,7 @@ jobs:
       - name: Run Godot observer test only if Godot is installed cheaply
         run: |
           if command -v godot >/dev/null 2>&1; then
-            godot --headless --path godot -s res://scripts/observer_selftest.gd
+             godot --headless --path godot -s res://scripts/_observer_test.gd
           else
             echo "Godot not installed in CI; skipping interactive/observer Godot test (CI must never require it)."
           fi
