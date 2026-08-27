@@ -48,7 +48,10 @@ positions); the grid only knows indices.
 """
 function neighbors(g::SpatialGrid, pos::Vec3, radius::Float32)
     key = cell_key(g, pos)
-    out = Set{Int}()
+    # Cells are disjoint, so concatenating bucket contents cannot duplicate an
+    # index. Avoiding a Set here removes a hash allocation from every neighbor
+    # query while preserving deterministic bucket order.
+    out = Int[]
     for dx in -1:1, dy in -1:1, dz in -1:1
         k = (key[1] + dx, key[2] + dy, key[3] + dz)
         bucket = get(g.buckets, k, nothing)

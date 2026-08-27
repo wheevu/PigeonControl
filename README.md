@@ -127,8 +127,9 @@ The server pairs with a listener.
 On macOS, sending a UDP datagram to a closed port can block indefinitely, so run Godot, or any listener, on the snapshot port.
 With a listener present, sends return instantly and the server exits cleanly on duration or Ctrl-C.
 
-Throughput drops fast with population: roughly 39 steps/s at n=100 and 5 steps/s at n=2000, against a 60 fps target.
-Structure-of-arrays storage and threading are the planned fixes.
+The checked-in benchmark reports 59.29 simulation steps/s for 2,000 pigeons over 120 steps on the development machine.
+That is a simulation-only measurement after warm-up, not a rendered 60 fps claim.
+The benchmark lives in `benchmarks/benchmark.jl` and is the baseline for future SoA, threading, and allocation work.
 
 ## Observer and evaluation (experimental)
 

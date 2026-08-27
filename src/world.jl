@@ -41,7 +41,7 @@ The full simulation world.
 """
 mutable struct World
     cfg::SimConfig
-    rng::Any                      # StableRNGs.LehmerRNG (typed Any for safety)
+    rng::StableRNGs.LehmerRNG
     pigeons::Vector{Pigeon}
     foods::Vector{Food}
     tick::UInt32
