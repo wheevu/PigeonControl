@@ -29,7 +29,7 @@ jobs:
       - name: Install observer package
         run: |
           python -m pip install --upgrade pip
-          pip install -e observer/
+          pip install -e observer/ pytest
       - name: Run observer tests
         run: |
           python -m pytest observer/tests/test_metrics.py \
