@@ -139,6 +139,12 @@ It reads datasets produced by the simulation and never participates in the live 
 Julia owns generation (`experiments/generate_observer_dataset.jl`); Godot is used only for optional frame capture.
 The CLI exposes exactly seven commands: `generate`, `validate`, `train`, `evaluate`, `embed`, `retrieve`, `figures`.
 
+Install the local package and its dependencies before using the CLI:
+
+```bash
+python3 -m pip install -e observer
+```
+
 ```bash
 # Build a small baseline dataset, then validate it.
 pigeon-observer generate --scenario baseline_flocking --seed 69420 --output data/obs
@@ -146,9 +152,10 @@ pigeon-observer validate --dataset data/obs
 
 # Train, evaluate into a fresh run directory, embed, and retrieve neighbors.
 pigeon-observer train   --dataset data/obs --output models/obs
-pigeon-observer evaluate --checkpoint models/obs/ck.pt --dataset data/obs --output evidence/runs
-pigeon-observer embed   --checkpoint models/obs/ck.pt --dataset data/obs --output embeddings/
-pigeon-observer retrieve --index embeddings/embeddings.npz --query seq_1000_0 --top-k 5
+pigeon-observer evaluate --checkpoint models/obs/checkpoint.pt --dataset data/obs --output evidence/runs
+pigeon-observer embed   --checkpoint models/obs/checkpoint.pt --dataset data/obs --output embeddings/
+# Replace <sequence-id> with an ID present in the embedding index.
+pigeon-observer retrieve --index embeddings/embeddings.npz --query <sequence-id> --top-k 5
 ```
 
 Architecture boundary: the observer consumes snapshots and behavior labels after the fact.
@@ -164,3 +171,4 @@ Full research plan and evidence policy: [docs/OBSERVER_EXPERIMENT.md](docs/OBSER
 ## License
 
 No license file yet.
+The observer package metadata declares MIT, but that declaration is not a repository-wide license.
