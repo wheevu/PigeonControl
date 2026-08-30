@@ -8,15 +8,16 @@ Thousands of pigeons fight over bread in a low-poly city plaza.
 
 <table>
   <tr>
-    <td><img src="docs/crumb-goblin.gif" alt="Crumb Goblin fighting with a hammer"></td>
-    <td><img src="docs/sky-scout.gif" alt="Sky Scout fighting with a wand"></td>
-    <td><img src="docs/bruiser.gif" alt="Bruiser fighting with a bomb"></td>
+    <td align="center"><img src="docs/crumb-goblin.gif" alt="Crumb Goblin fighting with a hammer"><br><sub>Crumb Goblin · hammer</sub></td>
+    <td align="center"><img src="docs/sky-scout.gif" alt="Sky Scout fighting with a wand"><br><sub>Sky Scout · wand</sub></td>
+    <td align="center"><img src="docs/bruiser.gif" alt="Bruiser fighting with a bomb"><br><sub>Bruiser · bomb</sub></td>
   </tr>
 </table>
 
 Julia owns the deterministic simulation.
 Godot receives binary snapshots over UDP and renders the flock.
 The same seed, configuration, and inputs reproduce the same stampede.
+Neither side gets to do the other's job, no matter how persuasive the pigeons become.
 
 ## Inside the plaza
 
