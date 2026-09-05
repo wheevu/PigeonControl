@@ -24,6 +24,11 @@ var _error_printed: bool = false
 # a nonempty error with ok=true must be treated as invalid for capture.
 var latest_applied_tick: int = -1
 var latest_applied_error: String = ""
+var latest_version: int = 1
+var latest_env: Dictionary = {}
+var latest_threat: Dictionary = {}
+var latest_stats: Dictionary = {}
+var latest_fx: Array = []
 
 # Reassembly buffers keyed by frame id. Each value: {"count":int, "chunks":Array}
 var _reasm: Dictionary = {}
@@ -90,9 +95,16 @@ func _process(_delta: float) -> void:
 		var parsed: Dictionary = feed_packet(pkt)
 		if parsed.has("ok") and parsed["ok"]:
 			swarm.update_from_parsed(parsed)
+			if parsed.has("fx"):
+				swarm.apply_fx_events(parsed["fx"])
 			_update_food_markers(parsed["foods"])
 			latest_applied_tick = parsed["tick"]
 			latest_applied_error = parsed["error"]
+			latest_version = parsed.get("version", 1)
+			latest_env = parsed.get("env", {})
+			latest_threat = parsed.get("threat", {})
+			latest_stats = parsed.get("stats", {})
+			latest_fx = parsed.get("fx", [])
 			emit_signal("snapshot_applied", parsed["tick"])
 			_error_printed = false
 		elif parsed.has("ok") and not parsed["ok"]:
@@ -119,6 +131,10 @@ func _update_food_markers(foods: Array) -> void:
 		if i < need:
 			var f: Dictionary = foods[i]
 			last_food_markers[i].global_position = Vector3(f["x"], f["y"], f["z"])
+			# v2 crumbs shrink as pigeons drain them; v1 stays full size.
+			var amount: float = float(f.get("amount", 50.0))
+			var s: float = clampf(amount / 50.0, 0.25, 1.0)
+			last_food_markers[i].scale = Vector3.ONE * s
 			last_food_markers[i].visible = true
 		else:
 			last_food_markers[i].visible = false

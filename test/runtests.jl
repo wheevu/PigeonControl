@@ -346,3 +346,4 @@ end
 end
 
 include("observation_tests.jl")
+include("visual_tests.jl")

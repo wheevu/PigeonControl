@@ -359,11 +359,13 @@ func _run() -> bool:
 	var EXPECTED_WEAPON_NODES := ["WeaponsSword", "WeaponsHammer", "WeaponsWand", "WeaponsBomb"]
 
 	# FX/overlay MultiMeshes added by the visual contract: shadows, fight
-	# impacts, fight emotes, and per-weapon backplates.
+	# impacts, fight emotes, per-weapon backplates, plus sim-owned event pools
+	# (feathers, dust, fighter trails).
 	var EXPECTED_FX_NODES := [
 		"PigeonShadows", "ImpactBursts", "FightEmotes",
 		"WeaponsSwordBackplate", "WeaponsHammerBackplate",
 		"WeaponsWandBackplate", "WeaponsBombBackplate",
+		"FeatherPuffs", "DustPuffs", "FighterTrails",
 	]
 
 	for kt in 4:
@@ -525,15 +527,70 @@ func _run() -> bool:
 
 	swarm.free()
 
+	# v2 parses with bank/hunger/amount plus env/threat/stats/fx trailer.
+	var v2b: PackedByteArray = _build_v2_packet()
+	var v2p: Dictionary = Parser.parse_snapshot(v2b)
+	if not v2p.ok:
+		print("fail: v2 packet reported ok == false, error=", v2p.error)
+		return false
+	if v2p.version != 2:
+		print("fail: v2 version %d != 2" % v2p.version)
+		return false
+	if abs(float(v2p.pigeons[0]["bank"]) - 0.25) > 0.0001:
+		print("fail: v2 bank not decoded")
+		return false
+	if abs(float(v2p.foods[0]["amount"]) - 25.0) > 0.0001:
+		print("fail: v2 food amount not decoded")
+		return false
+	if v2p.env.is_empty() or v2p.stats.is_empty() or v2p.fx.size() != 1:
+		print("fail: v2 trailer missing (env/stats/fx)")
+		return false
+
 	# Unsupported protocol version -> ok == false (must reject before decoding).
 	var uv: PackedByteArray = b.duplicate()
-	uv[4] = 2
+	uv[4] = 3
 	var up: Dictionary = Parser.parse_snapshot(uv)
 	if up.ok:
-		print("fail: unsupported version 2 reported ok == true")
+		print("fail: unsupported version 3 reported ok == true")
 		return false
 	if up.error == "":
-		print("fail: unsupported version 2 produced no error string")
+		print("fail: unsupported version 3 produced no error string")
 		return false
 
 	return true
+
+func _build_v2_packet() -> PackedByteArray:
+	var v2b: PackedByteArray = PackedByteArray()
+	put_u32(v2b, 0x50494345)
+	v2b.append(2)
+	v2b.append(0); v2b.append(0); v2b.append(0)
+	put_u32(v2b, 9)
+	put_u32(v2b, 1)
+	put_u32(v2b, 1)
+	# Pigeon 48B: v1 40B plus bank + hunger.
+	put_u32(v2b, 7)
+	put_f32(v2b, 1.0); put_f32(v2b, 2.0); put_f32(v2b, 3.0)
+	put_f32(v2b, 0.0); put_f32(v2b, 0.0); put_f32(v2b, 0.25)
+	v2b.append(0); v2b.append(0)
+	put_f32(v2b, 0.5); put_f32(v2b, 3.0)
+	v2b.append(0); v2b.append(0)
+	put_f32(v2b, 0.25); put_f32(v2b, 0.6)
+	# Food 20B: v1 plus amount.
+	put_u32(v2b, 11)
+	put_f32(v2b, 4.0); put_f32(v2b, 0.2); put_f32(v2b, 5.0)
+	put_f32(v2b, 25.0)
+	# Env 20B.
+	put_f32(v2b, 0.8); put_f32(v2b, 10.5)
+	put_f32(v2b, 0.5); put_f32(v2b, 0.0); put_f32(v2b, -0.3)
+	# Threat 16B active.
+	v2b.append(1); v2b.append(0); v2b.append(0); v2b.append(0)
+	put_f32(v2b, 2.0); put_f32(v2b, 0.0); put_f32(v2b, 2.0)
+	# Stats 16B.
+	put_u32(v2b, 1); put_u32(v2b, 2); put_u32(v2b, 3)
+	put_f32(v2b, 120.0)
+	# One fx record 20B.
+	put_u32(v2b, 1)
+	put_u32(v2b, 5)
+	put_f32(v2b, 1.0); put_f32(v2b, 1.5); put_f32(v2b, 1.0)
+	put_f32(v2b, 1.0)
+	return v2b

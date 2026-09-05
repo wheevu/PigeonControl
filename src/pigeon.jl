@@ -119,6 +119,7 @@ mutable struct Pigeon
     fight_timer::Float32     # > 0 while actively fighting (ragdoll)
     fight_cooldown::Float32  # > 0 after a fight ends, blocks re-fight
     ragdoll_phase::Float32   # rotation phase used by the ragdoll animation
+    bank::Float32            # lateral bank for turns, sim-owned visual state
 end
 
 function Pigeon(id::Integer, rng::AbstractRNG, cfg)
@@ -156,5 +157,6 @@ function Pigeon(id::Integer, rng::AbstractRNG, cfg)
         0.0f0,                         # fight_timer
         0.0f0,                         # fight_cooldown
         0.0f0,                         # ragdoll_phase
+        0.0f0,                         # bank
     )
 end

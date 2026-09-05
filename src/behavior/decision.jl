@@ -7,8 +7,9 @@ Decides the discrete `Pigeon.state` for the current tick:
   - threat near            -> FLEEING (3)
   - eating                 -> EATING  (2)
   - airborne (y > 1.5)     -> FLYING  (0)
-  - on ground, slow       -> WALKING (1)
-  - on ground, moving     -> LANDING (4) / TAKEOFF (5) by vertical motion
+  - near a perch, slow     -> PERCHING (7)
+  - on ground, slow        -> WALKING (1)
+  - on ground, moving      -> LANDING (4) / TAKEOFF (5) by vertical motion
 """
 function update_state!(p::Pigeon, w::World, eating::Bool)
     # An active fight overrides everything else (including a human threat):
@@ -29,6 +30,25 @@ function update_state!(p::Pigeon, w::World, eating::Bool)
     if eating
         p.state = EATING
         return
+    end
+
+    if p.pos[2] > 1.5f0 && p.speed >= 1.0f0
+        p.state = FLYING
+        return
+    end
+
+    # Fixed perches give PERCHING a real home: slow birds near a perch settle,
+    # even elevated ones that would otherwise read as FLYING.
+    if p.speed < 1.0f0 && !isempty(w.perches)
+        for perch in w.perches
+            dx = p.pos[1] - perch[1]
+            dy = p.pos[2] - perch[2]
+            dz = p.pos[3] - perch[3]
+            if dx * dx + dy * dy + dz * dz < 2.25f0
+                p.state = PERCHING
+                return
+            end
+        end
     end
 
     if p.pos[2] > 1.5f0

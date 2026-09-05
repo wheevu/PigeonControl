@@ -10,7 +10,7 @@ using Sockets
 
 # ----- argument parsing -----
 function parse_args()
-    args = Dict{String,Any}("seed"=>69420, "n"=>2000, "port"=>5000, "fps"=>60, "duration"=>Inf)
+    args = Dict{String,Any}("seed"=>69420, "n"=>2000, "port"=>5000, "fps"=>60, "duration"=>Inf, "v1"=>false)
     i = 1
     while i <= length(ARGS)
         a = ARGS[i]
@@ -19,6 +19,7 @@ function parse_args()
         elseif a == "--port" && i+1 <= length(ARGS);  args["port"]     = parse(Int, ARGS[i+=1]); i+=1
         elseif a == "--fps" && i+1 <= length(ARGS);    args["fps"]      = parse(Int, ARGS[i+=1]); i+=1
         elseif a == "--duration" && i+1 <= length(ARGS); args["duration"] = parse(Float64, ARGS[i+=1]); i+=1
+        elseif a == "--v1"; args["v1"] = true; i += 1
         else; i += 1
         end
     end
@@ -76,7 +77,8 @@ function main()
                 end
             end
             step!(world)
-            send_bytes(sock, ip"127.0.0.1", port, serialize_snapshot(world), world.tick)
+            ver = args["v1"] ? PROTOCOL_VERSION : PROTOCOL_V2
+            send_bytes(sock, ip"127.0.0.1", port, serialize_snapshot(world; version=ver), world.tick)
 
             if time() >= next_status
                 println("tick=$(world.tick) pigeons=$(length(world.pigeons)) foods=$(length(world.foods))")

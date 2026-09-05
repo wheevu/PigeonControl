@@ -96,6 +96,12 @@ function start_fight!(w::World, a::Int, t::Int)
     pt.ragdoll_phase = 0.02f0
     pa.state = FIGHTING
     pt.state = FIGHTING
+    pa.bank = 0.0f0
+    pt.bank = 0.0f0
+    # Sim-owned fight garnish: feather puff plus impact burst at the midpoint.
+    mid = (pa.pos + pt.pos) * 0.5f0
+    push_fx!(w, FX_FEATHER, mid, 1.0f0)
+    push_fx!(w, FX_BURST, mid, spec.horizontal * 0.12f0)
     return true
 end
 
@@ -186,6 +192,9 @@ function ragdoll_step!(w::World, p::Pigeon, cfg::SimConfig)
         if v[2] < 0.0f0
             v = @SVector Float32[v[1], -v[2] * 0.45f0, v[3]]
             v = @SVector Float32[v[1] * 0.8f0, v[2], v[3] * 0.8f0]  # ground friction
+            if abs(v[2]) > 1.0f0
+                push_fx!(w, FX_DUST, pos, 0.7f0)
+            end
         end
     end
 

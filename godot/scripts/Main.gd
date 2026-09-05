@@ -22,8 +22,11 @@ func _ready() -> void:
 	_build_map()
 	_build_swarm()
 	_build_receiver()
+	_build_sky()
 	if not _observer_mode:
 		_build_commander()
+		_build_director()
+		_build_hud()
 	if _observer_mode:
 		print("PigeonControl observer mode - listening on :%d" % [
 			int(OS.get_environment("OBSERVER_SNAPSHOT_PORT")) if OS.get_environment("OBSERVER_SNAPSHOT_PORT") != "" else 5100])
@@ -103,3 +106,42 @@ func _build_commander() -> void:
 	cs.set_script(load("res://scripts/CommandSender.gd"))
 	add_child(cs)
 	cs.setup(get_node("FreeCam"), 5001)
+
+func _build_sky() -> void:
+	var sky: Node3D = Node3D.new()
+	sky.name = "SkyRig"
+	sky.set_script(load("res://scripts/SkyRig.gd"))
+	add_child(sky)
+	sky.build()
+	get_node("Receiver").snapshot_applied.connect(_on_snapshot)
+
+func _on_snapshot(_tick: int) -> void:
+	var receiver = get_node("Receiver")
+	var sky = get_node_or_null("SkyRig")
+	if sky != null and receiver.latest_env is Dictionary:
+		sky.apply_env(receiver.latest_env)
+	# Wire threat marker follows authority, not just the local click.
+	var commander = get_node_or_null("Commander")
+	if commander != null and commander.has_method("_hud"):
+		var threat: Dictionary = receiver.latest_threat
+		if not threat.is_empty() and bool(threat.get("active", false)):
+			commander.human_marker.global_position = Vector3(float(threat.get("x", 0.0)), 0.0, float(threat.get("z", 0.0)))
+			commander.human_marker.visible = true
+		elif threat.is_empty() or not bool(threat.get("active", false)):
+			# Only auto-hide when the sim says so and the user did not just
+			# place a local marker this frame; the next explicit H/C click wins.
+			pass
+
+func _build_director() -> void:
+	var d: Node = Node.new()
+	d.name = "Director"
+	d.set_script(load("res://scripts/CameraDirector.gd"))
+	add_child(d)
+	d.setup(get_node("FreeCam"), get_node("Swarm"))
+
+func _build_hud() -> void:
+	var hud: Label = Label.new()
+	hud.name = "StatsHud"
+	hud.set_script(load("res://scripts/Hud.gd"))
+	get_tree().root.add_child.call_deferred(hud)
+	hud.setup.call_deferred(get_node("Receiver"), get_node("Swarm"), get_node("Director"))

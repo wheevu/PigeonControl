@@ -43,8 +43,10 @@ That determinism is what makes the behavior tunable instead of guessable.
 - Thousands of boids, each with a genome that scales cohesion, alignment, separation, greed, and cowardice individually.
 - Four deterministic pigeon archetypes: Common, Crumb Goblin, Sky Scout, and Bruiser. Each has a distinct silhouette and genome bias, and fights with a derived weapon (sword, hammer, wand, bomb).
 - Eight behavior states: flying, walking, eating, fleeing, landing, takeoff, fighting, perching.
-- Bread drops create real food competition; pigeons within eating radius drain a crumb until it is gone.
+- Bread drops create real food competition; pigeons within eating radius drain a crumb until it is gone, and crumbs visibly shrink.
 - Humans are threats: outside an active fight, each pigeon flees when a human enters its own vision radius (`12m * genome.vision`), with fear force scaled by `genome.fear` and proximity.
+- Sim-owned visual events: feather puffs and impact bursts on fights, dust on landings, gusts on takeoff, gobble sparks while eating, droppings aloft.
+- Banking turns, speed stretch, perched birds on lamp and bench tops, and a dusk sky after `KILL_THE_SUN`.
 - A custom binary UDP protocol that ships snapshots in one packet when small and fragments them past 8000 bytes.
 - A renderer with no authority. Godot poses meshes; it never decides a pigeon's next move.
 - Live control while the sim runs: drop bread, spawn a human, clear the plaza.
@@ -87,9 +89,11 @@ Commands are plain text over UDP, one per packet, on port `snapshot_port + 1` (5
 | `DROP_BREAD x y z amount` | Scatters up to 200 crumbs in a 1.5 m disk; pigeons eat them |
 | `SPAWN_HUMAN x y z` | Sets the threat position; nearby pigeons flee |
 | `CLEAR_HUMAN` | Removes the threat |
-| `KILL_THE_SUN` | Currently a no-op |
+| `KILL_THE_SUN` | Latches dusk for the run; the renderer dims and warms |
 
-In Godot: **B** drops bread under the crosshair, **H** spawns a human, **C** clears it, **K** sends the no-op.
+In Godot: **B** drops bread under the crosshair, **H** spawns a human, **C** clears it, **K** latches dusk.
+Cameras: **1** freecam, **2** follow the brawl, **3** cinematic orbit, **4** security corners.
+The HUD shows tick, fight/flee/eat counts, food left, threat, and camera mode from authoritative stats.
 
 ## Development
 

@@ -20,8 +20,15 @@ const WEAPON_BACKPLATE_NODE_NAMES := [
 const SHADOW_NODE_NAME := "PigeonShadows"
 const IMPACT_NODE_NAME := "ImpactBursts"
 const EMOTE_NODE_NAME := "FightEmotes"
+const FEATHER_NODE_NAME := "FeatherPuffs"
+const DUST_NODE_NAME := "DustPuffs"
+const TRAIL_NODE_NAME := "FighterTrails"
 const IMPACT_TEX_PATH := "res://assets/vfx/impact_star.png"
 const EMOTE_TEX_PATH := "res://assets/vfx/emote_anger.png"
+const FEATHER_TEX_PATH := "res://assets/vfx/feather_star.png"
+const DUST_TEX_PATH := "res://assets/vfx/dust_puff.png"
+const TRAIL_TEX_PATH := "res://assets/vfx/trail_streak.png"
+const GOBBLE_TEX_PATH := "res://assets/vfx/gobble_spark.png"
 # Authored GLBs are real pigeon scale (~0.5-0.65 m); restrained archetype deltas
 # keep final world sizes around 0.45-0.75 m.
 const ARCH_SCALE := [1.0, 1.08, 0.94, 1.2]
@@ -46,9 +53,13 @@ const WEAPON_TEX_PATHS := [
 	"res://assets/weapons/bomb.png",
 ]
 const STATE_FIGHTING := 6
+const STATE_FLEEING := 3
+const STATE_EATING := 2
+const STATE_PERCHING := 7
 const LERP_RATE := 8.0
 const HIDDEN_Y := -1000.0
 const TAU := 6.283185307179586
+const FX_TTL := {"1": 0.7, "2": 0.9, "3": 0.5, "4": 0.8, "5": 0.6, "6": 1.1}
 
 var max_instances: int = 0
 var current_count: int = 0
@@ -61,7 +72,11 @@ var backplate_mm: Array = []   # Dark backing MultiMesh per type
 var shadow_mm: MultiMesh = null # Shared contact-shadow MultiMesh
 var impact_mm: MultiMesh = null # FIGHTING impact-star garnish
 var emote_mm: MultiMesh = null  # FIGHTING anger emote garnish
+var feather_mm: MultiMesh = null # Sim-owned feather/burst events
+var dust_mm: MultiMesh = null   # Sim-owned dust/gust/gobble/dropping events
+var trail_mm: MultiMesh = null  # Continuous streak behind fighters
 var fx_time: float = 0.0       # Local visual clock for pulse/bob (no authority)
+var fx_events: Array = []      # Array[Dictionary] active sim events with age
 var prev_t: Array = []         # Array[Array[Transform3D]] last applied bird transform
 var target_t: Array = []       # Array[Array[Transform3D]] latest parsed bird transform
 var rend_t: Array = []         # Array[Array[Transform3D]] currently drawn bird transform
@@ -70,6 +85,9 @@ var slot_state: Array = []     # Array[Array[int]] state per slot
 var slot_unkn: Array = []      # Array[Array[bool]] pigeon is an unknown variant (type 0 only)
 var slot_flap: Array = []      # Array[Array[float]] flap_phase per slot
 var slot_roll: Array = []      # Array[Array[float]] roll per slot
+var slot_bank: Array = []      # Array[Array[float]] sim-owned bank per slot
+var slot_hunger: Array = []    # Array[Array[float]] hunger01 per slot
+var slot_speed: Array = []     # Array[Array[float]] speed per slot
 var type_count: Array = []     # Array[int] current visible count per type
 var prev_count: Array = []     # Array[int] visible count last frame (stale-range clearing)
 
@@ -97,8 +115,12 @@ func setup(max_n: int) -> void:
 	slot_unkn = []
 	slot_flap = []
 	slot_roll = []
+	slot_bank = []
+	slot_hunger = []
+	slot_speed = []
 	type_count = []
 	prev_count = []
+	fx_events = []
 
 	for t in VARIANT_NAMES.size():
 		_setup_type(t, max_n)
@@ -119,6 +141,7 @@ func _setup_shared_fx(max_n: int) -> void:
 	smat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
 	smat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	smat.albedo_color = Color(0.0, 0.0, 0.0, 0.38)
+	smat.albedo_texture = _make_disc_texture()
 	smat.disable_receive_shadows = true
 	var smi: MultiMeshInstance3D = MultiMeshInstance3D.new()
 	smi.name = SHADOW_NODE_NAME
@@ -163,6 +186,7 @@ func _setup_shared_fx(max_n: int) -> void:
 	emi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	add_child(emi)
 	emote_mm = emm
+	_setup_event_fx(max_n)
 
 func _setup_type(t: int, max_n: int) -> void:
 	# --- pigeon MultiMesh ---
@@ -225,6 +249,9 @@ func _setup_type(t: int, max_n: int) -> void:
 	var un: Array = []
 	var fl: Array = []
 	var ro: Array = []
+	var ba: Array = []
+	var hu: Array = []
+	var sp: Array = []
 	var h: Transform3D = _hidden_transform(false)
 	var hz: Transform3D = _hidden_transform(true)
 	for _i in max_n:
@@ -236,6 +263,9 @@ func _setup_type(t: int, max_n: int) -> void:
 		un.append(false)
 		fl.append(0.0)
 		ro.append(0.0)
+		ba.append(0.0)
+		hu.append(0.0)
+		sp.append(0.0)
 	prev_t.append(pa)
 	target_t.append(ta)
 	rend_t.append(ra)
@@ -244,8 +274,35 @@ func _setup_type(t: int, max_n: int) -> void:
 	slot_unkn.append(un)
 	slot_flap.append(fl)
 	slot_roll.append(ro)
+	slot_bank.append(ba)
+	slot_hunger.append(hu)
+	slot_speed.append(sp)
 	type_count.append(0)
 	prev_count.append(0)
+
+func _setup_event_fx(max_n: int) -> void:
+	# Sim-owned transient events: feathers/bursts plus dust/gusts/gobbles.
+	# Small fixed pools (64 each) mirror the Julia FX_CAP; Godot only ages TTL.
+	feather_mm = _make_event_pool(FEATHER_NODE_NAME, FEATHER_TEX_PATH, 0.42, 64)
+	dust_mm = _make_event_pool(DUST_NODE_NAME, DUST_TEX_PATH, 0.55, 64)
+	trail_mm = _make_event_pool(TRAIL_NODE_NAME, TRAIL_TEX_PATH, 0.34, max_n)
+
+func _make_event_pool(node_name: String, tex_path: String, size: float, count: int) -> MultiMesh:
+	var mm: MultiMesh = MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = _make_billboard_mesh(size)
+	mm.instance_count = count
+	mm.visible_instance_count = 0
+	var mat: StandardMaterial3D = _make_billboard_material(tex_path, Color(1.0, 1.0, 1.0))
+	mat.render_priority = 2
+	var mi: MultiMeshInstance3D = MultiMeshInstance3D.new()
+	mi.name = node_name
+	mi.multimesh = mm
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	add_child(mi)
+	return mm
 
 func _load_pigeon_mesh(t: int) -> Mesh:
 	var mesh: Mesh = _try_load_glb_mesh(PIGEON_MESH_PATHS[t])
@@ -302,22 +359,28 @@ func _make_billboard_material(tex_path: String, tint: Color) -> StandardMaterial
 func _make_backplate_material() -> StandardMaterial3D:
 	# A soft round plate keeps pale icons readable without covering the pigeon
 	# with the opaque square produced by a plain untextured QuadMesh.
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(0.035, 0.04, 0.055, 1.0)
+	mat.albedo_texture = _make_disc_texture()
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	mat.disable_receive_shadows = true
+	mat.render_priority = -1
+	return mat
+
+func _make_disc_texture() -> Texture2D:
+	# Shared soft radial disc: solid center fading to transparent corners so
+	# pooled quads (shadows, backplates) read as discs, never squares.
 	var image := Image.create(32, 32, false, Image.FORMAT_RGBA8)
 	for y in 32:
 		for x in 32:
 			var uv := Vector2((float(x) + 0.5) / 32.0, (float(y) + 0.5) / 32.0)
 			var edge := clampf((0.50 - uv.distance_to(Vector2(0.5, 0.5))) / 0.13, 0.0, 1.0)
 			var alpha := edge * edge * (3.0 - 2.0 * edge) * 0.72
-			image.set_pixel(x, y, Color(0.035, 0.04, 0.055, alpha))
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_texture = ImageTexture.create_from_image(image)
-	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
-	mat.disable_receive_shadows = true
-	mat.render_priority = -1
-	return mat
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+	return ImageTexture.create_from_image(image)
 
 func _make_weapon_material(t: int) -> StandardMaterial3D:
 	var mat: StandardMaterial3D = StandardMaterial3D.new()
@@ -387,9 +450,14 @@ func update_from_parsed(parsed: Dictionary) -> void:
 		for i in new_count:
 			var e: Dictionary = ents[i]
 			var p: Dictionary = e["p"]
-			var basis: Basis = Basis.from_euler(Vector3(p["pitch"], p["yaw"], p["roll"]))
+			# v2 sends explicit bank; v1 packs it into roll. Prefer bank.
+			var bank: float = float(p.get("bank", p["roll"]))
+			var basis: Basis = Basis.from_euler(Vector3(p["pitch"], p["yaw"], bank))
 			var s: float = ARCH_SCALE[t]
-			basis = basis.scaled(Vector3(s, s, s))
+			# Subtle motion stretch along forward so fast birds read at distance.
+			var speed: float = float(p.get("speed", 0.0))
+			var stretch: float = 1.0 + minf(speed * 0.015, 0.18)
+			basis = basis.scaled(Vector3(s, s, s * stretch))
 			var tgt: Transform3D = Transform3D(basis, Vector3(p["x"], p["y"], p["z"]))
 
 			# Smoothly interpolate from the rendered transform when the same id
@@ -404,6 +472,9 @@ func update_from_parsed(parsed: Dictionary) -> void:
 			slot_unkn[t][i] = e["unkn"]
 			slot_flap[t][i] = p["flap_phase"]
 			slot_roll[t][i] = p["roll"]
+			slot_bank[t][i] = bank
+			slot_hunger[t][i] = float(p.get("hunger", 0.0))
+			slot_speed[t][i] = speed
 			last_id[t][i] = p["id"]
 
 		# Clear slots that fell out of range this update.
@@ -416,6 +487,9 @@ func update_from_parsed(parsed: Dictionary) -> void:
 			slot_unkn[t][i] = false
 			slot_flap[t][i] = 0.0
 			slot_roll[t][i] = 0.0
+			slot_bank[t][i] = 0.0
+			slot_hunger[t][i] = 0.0
+			slot_speed[t][i] = 0.0
 
 func _process(delta: float) -> void:
 	if max_instances == 0:
@@ -483,6 +557,9 @@ func _process(delta: float) -> void:
 			slot_unkn[t][i] = false
 			slot_flap[t][i] = 0.0
 			slot_roll[t][i] = 0.0
+			slot_bank[t][i] = 0.0
+			slot_hunger[t][i] = 0.0
+			slot_speed[t][i] = 0.0
 
 		prev_count[t] = count
 
@@ -500,6 +577,75 @@ func _process(delta: float) -> void:
 		emote_mm.visible_instance_count = vis_total
 		for i in range(vis_total, max_instances):
 			emote_mm.set_instance_transform(i, _hidden_transform(true))
+	_update_event_fx(delta, vis_total)
+	_update_trails(vis_total)
+
+# Sim-owned events only: Julia decides type and position, Godot ages the TTL.
+func apply_fx_events(events: Array) -> void:
+	for e in events:
+		var key: String = str(int(e.get("type", 0)))
+		var ttl: float = float(FX_TTL.get(key, 0.7))
+		fx_events.append({
+			"type": int(e.get("type", 0)),
+			"pos": Vector3(float(e.get("x", 0.0)), float(e.get("y", 0.0)), float(e.get("z", 0.0))),
+			"mag": float(e.get("mag", 1.0)),
+			"age": 0.0,
+			"ttl": ttl,
+		})
+	# Cap the live list so a burst frame cannot grow it without bound.
+	while fx_events.size() > 128:
+		fx_events.pop_front()
+
+func _update_event_fx(delta: float, vis_total: int) -> void:
+	if feather_mm == null or dust_mm == null:
+		return
+	var fi: int = 0
+	var di: int = 0
+	# Age in place, compacting expired entries.
+	var kept: Array = []
+	for e in fx_events:
+		e["age"] = float(e["age"]) + delta
+		if float(e["age"]) < float(e["ttl"]):
+			kept.append(e)
+	fx_events = kept
+	for e in fx_events:
+		var t: float = float(e["age"]) / maxf(0.001, float(e["ttl"]))
+		var pos: Vector3 = e["pos"]
+		pos.y += (1.0 - t) * 0.35 * float(e["mag"])
+		var s: float = (0.5 + t * 0.9) * clampf(float(e["mag"]), 0.4, 1.6)
+		var xf: Transform3D = Transform3D(Basis().scaled(Vector3.ONE * s), pos)
+		var etype: int = int(e["type"])
+		if etype == 1 or etype == 5:
+			if fi < 64:
+				feather_mm.set_instance_transform(fi, xf)
+				fi += 1
+		else:
+			if di < 64:
+				dust_mm.set_instance_transform(di, xf)
+				di += 1
+	feather_mm.visible_instance_count = fi
+	dust_mm.visible_instance_count = di
+	for i in range(fi, 64):
+		feather_mm.set_instance_transform(i, _hidden_transform(true))
+	for i in range(di, 64):
+		dust_mm.set_instance_transform(i, _hidden_transform(true))
+
+func _update_trails(vis_total: int) -> void:
+	if trail_mm == null:
+		return
+	var ti: int = 0
+	for t in VARIANT_NAMES.size():
+		for i in type_count[t]:
+			var fighting: bool = (not slot_unkn[t][i]) and slot_state[t][i] == STATE_FIGHTING
+			if fighting and ti < max_instances:
+				var bird: Transform3D = rend_t[t][i]
+				var back: Vector3 = bird.origin - bird.basis.z.normalized() * 0.55
+				var pulse: float = 0.8 + 0.2 * sin(fx_time * 9.0 + float(i))
+				trail_mm.set_instance_transform(ti, Transform3D(Basis().scaled(Vector3.ONE * pulse), back))
+				ti += 1
+	trail_mm.visible_instance_count = ti
+	for i in range(ti, max_instances):
+		trail_mm.set_instance_transform(i, _hidden_transform(true))
 
 # Soft dark disc pinned to the ground under the pigeon. Scales down and fades
 # with altitude by shrinking the quad; the material alpha is fixed per mesh so

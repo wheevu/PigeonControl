@@ -56,8 +56,12 @@ Julia owns all simulation state. Godot never decides pigeon behavior; it only re
   `KILL_THE_SUN`) is implemented on both sides: `run_server.jl` listens on
   `snapshot_port + 1` (default 5001) and mutates the `World`; Godot's
   `CommandSender.gd` sends commands on keys B/H/C/K (drop bread / spawn human /
-  clear human / kill the sun). The snapshot transport and fragmentation are
+  clear human / latch dusk). The snapshot transport and fragmentation are
   fully implemented.
+- Protocol v2 is additive and backward compatible: v1 offsets never shift,
+  the parser accepts 1 and 2, and the server emits v2 by default (`--v1`
+  falls back). New visual state (bank, hunger, food amount, env, threat,
+  stats, fx) is sim-owned; Godot only draws it.
 
 ## Note
 

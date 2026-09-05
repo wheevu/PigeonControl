@@ -122,9 +122,23 @@ Godot interpolates these values only; it never computes ragdoll orientation itse
 
 ## Version handling
 
-The parser must reject any packet whose `version` byte is not `1`.
+The parser accepts `version` 1 and 2 and rejects anything else.
 A mismatch is a hard error (Julia `parse_snapshot` throws; the Godot `SnapshotParser` returns `ok = false` with an unsupported-version error) and decoding must not continue.
-The header layout, record order, 40-byte pigeon record, and 16-byte food record are unchanged from v1.
+v1 is frozen: header 20B, 40-byte pigeon record, 16-byte food record.
+v2 is additive: every v1 offset stays identical, then new fields append.
+
+## v2 additive visuals (version 2)
+
+v2 keeps the 20B header with `version = 2`, then:
+
+- Pigeon 48B: first 40B identical to v1 (roll now carries sim-owned bank for non-fighting birds, ragdoll pose while fighting), then `bank Float32` at offset 40 and `hunger01 Float32` at offset 44. Hunger is `clamp(hunger * 0.2, 0..1)`.
+- Food 20B: v1 16B plus `amount Float32` at offset 16 so crumbs shrink as they are eaten.
+- Env 20B: `sun Float32, time_of_day Float32, wind_xyz 3x Float32`. Sun is 1.0 midday, 0.22 after `KILL_THE_SUN` latches dusk. Wind is a slow deterministic sway, never RNG.
+- Threat 16B: `active UInt8, pad 3B, xyz Float32`. Mirrors the sim threat so SECURITY cam and flee tint follow authority.
+- Stats 16B: `n_fighting UInt32, n_fleeing UInt32, n_eating UInt32, food_left Float32` for HUD and heat.
+- `fx_count UInt32` then Fx 20B each (cap 64): `type UInt32, xyz Float32, mag Float32`. Types: 1 feather, 2 dust, 3 gobble, 4 gust, 5 burst, 6 dropping. Julia pushes during `step!` and clears each tick; Godot draws each with a TTL and never decides one.
+
+Total v2 length: `20 + 48 * pigeons + 20 * foods + 20 + 16 + 16 + 4 + 20 * fx`.
 
 ## Control commands
 
@@ -136,7 +150,7 @@ Text UDP on port `snapshot_port + 1` (default 5001), one command per packet:
   A non-fighting pigeon that detects the threat enters FLEEING, while the repulsion strength applied to it depends on its `genome.fear` and proximity to the threat.
   An active fight finishes before either pigeon responds to the threat.
 - `CLEAR_HUMAN` — clear the threat (`nothing`).
-- `KILL_THE_SUN` — no-op (kept for protocol completeness).
+- `KILL_THE_SUN` — latch dusk: sun drops to 0.22 and stays there for the run.
 
 Commands are input events; determinism holds given the same seed, config, and ordered command sequence.
 

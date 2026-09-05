@@ -58,7 +58,7 @@ func _build_hud() -> void:
 	hud.add_theme_font_override("font", load("res://assets/2d/Kenney_Pixel.ttf"))
 	hud.add_theme_font_size_override("font_size", 17)
 	get_tree().root.add_child.call_deferred(hud)
-	hud.text = "controls: [B] drop bread  [H] spawn human  [C] clear human  [K] kill the sun"
+	hud.text = "controls: [B] bread  [H] human  [C] clear  [K] dusk  [1-4] cam"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -108,9 +108,9 @@ func _clear_human() -> void:
 
 func _kill_sun() -> void:
 	_send("KILL_THE_SUN")
-	_hud("KILL_THE_SUN (no-op)")
+	_hud("KILL_THE_SUN (dusk latched)")
 
 func _hud(msg: String) -> void:
 	if hud == null:
 		return
-	hud.text = msg + "\ncontrols: [B] drop bread  [H] spawn human  [C] clear human  [K] kill the sun"
+	hud.text = msg + "\ncontrols: [B] bread  [H] human  [C] clear  [K] dusk  [1-4] cam"

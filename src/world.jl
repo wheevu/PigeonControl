@@ -48,6 +48,12 @@ mutable struct World
     grid::SpatialGrid
     threat::Union{Nothing, Vec3}
     next_food_id::UInt32
+    sun_level::Float32       # 1.0 midday, 0.22 dusk after KILL_THE_SUN
+    time_of_day::Float32     # 0..24, slow drift for light mood
+    dusk::Bool               # latched by kill_the_sun!
+    wind::Vec3               # deterministic sway, drives motes and feathers
+    fx::Vector{FxEvent}      # bounded transient visuals, cleared each step
+    perches::Vector{Vec3}    # fixed perch points, PERCHING only lands here
 end
 
 """
@@ -66,7 +72,9 @@ function make_world(cfg::SimConfig = SimConfig())
     end
 
     grid = SpatialGrid(cfg)
-    World(cfg, rng, pigeons, foods, UInt32(0), grid, nothing, UInt32(cfg.food_count + 1))
+    perches = default_perches(cfg)
+    World(cfg, rng, pigeons, foods, UInt32(0), grid, nothing, UInt32(cfg.food_count + 1),
+        1.0f0, 10.0f0, false, @SVector(Float32[0.0f0, 0.0f0, 0.0f0]), FxEvent[], perches)
 end
 
 # ----- control-channel helpers (spawned food / threat) -----
@@ -98,7 +106,14 @@ function clear_human!(w::World)
 end
 
 function kill_the_sun!(w::World)
-    return nothing  # protocol no-op
+    set_dusk!(w)
+    return nothing
+end
+
+@inline function push_fx!(w::World, type::UInt32, pos::Vec3, mag::Float32)
+    length(w.fx) >= FX_CAP && return false
+    push!(w.fx, FxEvent(type, pos, mag))
+    return true
 end
 
 # ----- force helpers -----
@@ -163,6 +178,10 @@ function step!(w::World)
     cfg = w.cfg
     n = length(w.pigeons)
 
+    # Visual slice: fresh fx frame plus deterministic sky and wind.
+    empty!(w.fx)
+    step_env!(w)
+
     # (a) rebuild spatial grid
     build!(w.grid, w.pigeons)
 
@@ -184,6 +203,7 @@ function step!(w::World)
             force += boundary_steer(w, p)
             force  = clamp_force(force, cfg.max_force)
 
+            update_bank!(p, force)
             vmax = per_pigeon_max_speed(p, cfg)
             vel = clamp_speed(p.vel + force * cfg.dt, vmax)
             pos = clamp_pos(p.pos + vel * cfg.dt, cfg)
@@ -207,6 +227,7 @@ function step!(w::World)
     # (d)(e) feeding + state update + flap bookkeeping
     for i in 1:n
         p = w.pigeons[i]
+        prev_state = p.state
 
         ate = false
         if p.fight_timer <= 0.0f0   # fighting birds do not eat
@@ -220,11 +241,27 @@ function step!(w::World)
                     p.hunger = max(0.0f0, p.hunger - eat)
                     p.energy += eat * 2.0f0
                     ate = true
+                    if (Int(w.tick) + Int(p.id)) % 16 == 0
+                        push_fx!(w, FX_GOBBLE, p.pos, 1.0f0)
+                    end
                 end
             end
         end
 
         update_state!(p, w, ate)
+
+        # Transition puffs, throttled by the same deterministic schedule.
+        if p.state != prev_state
+            if p.state == LANDING
+                push_fx!(w, FX_DUST, p.pos, 0.8f0)
+            elseif p.state == TAKEOFF
+                push_fx!(w, FX_GUST, p.pos, 0.8f0)
+            end
+        end
+        # Occasional droppings while airborne, scaled by metabolism.
+        if p.state == FLYING && p.pos[2] > 2.0f0 && (Int(w.tick) + Int(p.id) * 7) % 512 == 0
+            push_fx!(w, FX_DROPPING, p.pos, p.genome.metabolism)
+        end
 
         # (f) flap animation phase (ragdoll uses ragdoll_phase instead)
         if p.fight_timer <= 0.0f0

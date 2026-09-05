@@ -24,10 +24,12 @@ using PigeonControl
     @test apply_command!(w, "CLEAR_HUMAN") == :ok
     @test w.threat === nothing
 
-    # KILL_THE_SUN is a no-op returning :ok, world unchanged
+    # KILL_THE_SUN latches dusk (sun drops, food count unchanged)
     foods_before = length(w.foods)
     @test apply_command!(w, "KILL_THE_SUN") == :ok
     @test length(w.foods) == foods_before
+    @test w.dusk == true
+    @test w.sun_level < 0.3f0
 
     # UNKNOWN command returns :unknown and does not mutate
     before = length(w.foods)
